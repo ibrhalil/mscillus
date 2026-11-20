@@ -10,5 +10,6 @@ export interface AudioFrame {
   beat: boolean;
   beatPulse: number;
   dt: number;
+  sampleRate: number;
   time: number;
 }

@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { AudioEngine } from './audio/AudioEngine';
 import type { SourceType } from './audio/types';
 import { RenderLoop } from './render/RenderLoop';
-import { MODES } from './visuals/registry';
-import type { ModeId } from './visuals/types';
+import { adjacentMode, favoriteForKey, MODES } from './visuals/registry';
+import type { ModeId } from './visuals/registry';
 import { toView, useSettings } from './store/settings';
 import { SourcePicker } from './ui/SourcePicker';
 import { ModeSwitcher } from './ui/ModeSwitcher';
+import { ExitFullscreenIcon, FullscreenIcon, SettingsIcon } from './ui/icons';
 import { SettingsPanel } from './ui/SettingsPanel';
 import { TransportControls } from './ui/TransportControls';
 
@@ -28,7 +29,10 @@ export default function App() {
   const [modeId, setModeId] = useState<ModeId>('bars');
   const [error, setError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [uiHidden, setUiHidden] = useState(false);
+  const [idle, setIdle] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [fps, setFps] = useState(0);
 
   const engineRef = useRef<AudioEngine | null>(null);
@@ -52,7 +56,7 @@ export default function App() {
       engine,
       canvas2d: c2d,
       canvasGL: cgl,
-      getSettings: () => toView(settingsRef.current),
+      getSettings: (mode) => toView(settingsRef.current, mode),
       onFps: setFps,
     });
     loop.setMode(modeRef.current).then(() => loop.start());
@@ -111,27 +115,88 @@ export default function App() {
     const onKey = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'SELECT')) return;
-      const modeIndex = MODES.findIndex((m) => m.key === e.key);
-      if (modeIndex >= 0) {
-        setModeId(MODES[modeIndex].id);
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const key =
+        e.key.length === 1 ? (e.shiftKey ? e.key.toUpperCase() : e.key.toLowerCase()) : e.key;
+      const favMode = favoriteForKey(settingsRef.current.favorites, key);
+      if (favMode) {
+        setModeId(favMode);
         return;
       }
-      if (e.key === ' ') {
-        e.preventDefault();
-        engineRef.current?.togglePlay();
-      } else if (e.key === 's' || e.key === 'S') {
-        setPanelOpen((v) => !v);
-      } else if (e.key === 'h' || e.key === 'H') {
-        setUiHidden((v) => !v);
-      } else if (e.key === 'f' || e.key === 'F') {
-        toggleFullscreen();
-      } else if (e.key === 'Escape') {
-        setPanelOpen(false);
+      const mode = MODES.find((m) => m.key === key);
+      if (mode) {
+        setModeId(mode.id);
+        return;
+      }
+      switch (key) {
+        case ' ':
+          e.preventDefault();
+          engineRef.current?.togglePlay();
+          break;
+        case 's':
+          setPanelOpen((v) => !v);
+          break;
+        case 'h':
+          setUiHidden((v) => !v);
+          break;
+        case 'f':
+          toggleFullscreen();
+          break;
+        case '/':
+          e.preventDefault();
+          setPickerOpen(true);
+          break;
+        case 'ArrowRight':
+        case 'ArrowLeft':
+          setModeId((cur) => adjacentMode(cur, key === 'ArrowRight' ? 1 : -1));
+          break;
+        case 'Escape':
+          setPickerOpen(false);
+          setPanelOpen(false);
+          break;
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, []);
+
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(document.fullscreenElement !== null);
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+
+  // Ayar paneli açıkken görsele (panel/üst çubuk/oynatıcı dışına) tıklamak paneli kapatır.
+  useEffect(() => {
+    if (!panelOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if ((e.target as Element | null)?.closest('.panel, .topbar, .transport')) return;
+      setPanelOpen(false);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [panelOpen]);
+
+  // Fare/klavye hareketsiz kalınca arayüz kendiliğinden silinir; görsel tam ekran kalır.
+  useEffect(() => {
+    if (source === null) return;
+    let timer = 0;
+    const wake = () => {
+      setIdle(false);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => setIdle(true), 3500);
+    };
+    wake();
+    window.addEventListener('pointermove', wake);
+    window.addEventListener('pointerdown', wake);
+    window.addEventListener('keydown', wake);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pointermove', wake);
+      window.removeEventListener('pointerdown', wake);
+      window.removeEventListener('keydown', wake);
+    };
+  }, [source]);
 
   useEffect(
     () => () => {
@@ -144,7 +209,7 @@ export default function App() {
   );
 
   return (
-    <div className="stage">
+    <div className={`stage ${idle && !pickerOpen && !panelOpen ? 'stage--idle' : ''}`}>
       <canvas ref={canvas2dRef} className="stage__canvas" />
       <canvas ref={canvasGLRef} className="stage__canvas" style={{ display: 'none' }} />
 
@@ -156,24 +221,46 @@ export default function App() {
             <>
               <header className="topbar">
                 <div className="topbar__brand">MSCILLUS</div>
-                <ModeSwitcher active={modeId} onChange={setModeId} />
+                <ModeSwitcher
+                  active={modeId}
+                  open={pickerOpen}
+                  onChange={setModeId}
+                  onOpenChange={setPickerOpen}
+                />
                 <div className="topbar__actions">
                   {settings.showFps && <span className="fps">{fps} FPS</span>}
-                  <button type="button" className="btn btn--ghost" onClick={() => setPanelOpen((v) => !v)}>
-                    Ayarlar (S)
+                  <button
+                    type="button"
+                    className={`btn btn--ghost btn--icon ${panelOpen ? 'btn--active' : ''}`}
+                    title="Ayarlar (S)"
+                    aria-label="Ayarlar"
+                    aria-pressed={panelOpen}
+                    onClick={() => setPanelOpen((v) => !v)}
+                  >
+                    <SettingsIcon />
                   </button>
-                  <button type="button" className="btn btn--ghost" onClick={handleChangeSource}>
-                    Kaynak Değiştir
-                  </button>
-                  <button type="button" className="btn btn--ghost" onClick={toggleFullscreen}>
-                    Tam Ekran (F)
+                  <button
+                    type="button"
+                    className="btn btn--ghost btn--icon"
+                    title={isFullscreen ? 'Tam ekrandan çık (F)' : 'Tam ekran (F)'}
+                    aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
+                    onClick={toggleFullscreen}
+                  >
+                    {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
                   </button>
                 </div>
               </header>
               {source === 'file' && engineRef.current && (
                 <TransportControls engine={engineRef.current} fileName={fileName} />
               )}
-              {panelOpen && <SettingsPanel onClose={() => setPanelOpen(false)} />}
+              {panelOpen && <SettingsPanel
+                  modeId={modeId}
+                  onClose={() => setPanelOpen(false)}
+                  onChangeSource={() => {
+                    setPanelOpen(false);
+                    handleChangeSource();
+                  }}
+                />}
             </>
           )}
           {uiHidden && <div className="ui-hint">Arayüzü göstermek için H tuşuna basın</div>}

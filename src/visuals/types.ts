@@ -2,15 +2,6 @@ import type { AudioFrame } from '../audio/types';
 
 export type RendererKind = 'canvas2d' | 'three';
 
-export type ModeId = 'bars' | 'radial' | 'particles' | 'wave' | 'tunnel';
-
-export interface ModeMeta {
-  id: ModeId;
-  name: string;
-  renderer: RendererKind;
-  key: string;
-}
-
 export interface Palette {
   id: string;
   name: string;
@@ -21,15 +12,19 @@ export interface Palette {
 export interface VisualizerSettingsView {
   palette: Palette;
   glow: boolean;
+  /** 0 düşük, 1 orta, 2 yüksek; parlama yardımcıları buna göre ölçeklenir. */
+  glowQuality: number;
   barCount: number;
   particleCount: number;
   rotationSpeed: number;
+  /** Animasyon zaman ölçeği (RenderLoop `dt`'ye uygular). */
+  speed: number;
+  /** Etkin modun tüm seçenekleri (paylaşılan + moda özel), varsayılanlarla doldurulmuş. */
+  opt: Record<string, number>;
 }
 
 export interface Visualizer {
-  readonly id: ModeId;
-  readonly name: string;
-  readonly renderer: RendererKind;
+  readonly manualRender?: boolean;
   init(w: number, h: number): void;
   resize(w: number, h: number): void;
   update(frame: AudioFrame, s: VisualizerSettingsView, w: number, h: number): void;

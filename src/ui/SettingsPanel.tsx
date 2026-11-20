@@ -1,9 +1,18 @@
+import { useState } from 'react';
 import type { ChangeEvent, ReactNode } from 'react';
+import { formatOption } from '../visuals/options';
+import type { OptionDef } from '../visuals/options';
 import { PALETTES } from '../visuals/palettes';
-import { useSettings } from '../store/settings';
+import { modeMeta } from '../visuals/registry';
+import type { ModeId } from '../visuals/registry';
+import { modeOptionValues, useSettings } from '../store/settings';
+
+const FFT_SIZES = [512, 1024, 2048, 4096];
 
 interface Props {
+  modeId: ModeId;
   onClose: () => void;
+  onChangeSource: () => void;
 }
 
 function Row({ label, value, children }: { label: string; value?: string; children?: ReactNode }) {
@@ -72,11 +81,86 @@ function Toggle({
   );
 }
 
-export function SettingsPanel({ onClose }: Props) {
-  const { settings, update, reset } = useSettings();
+function Segmented({
+  label,
+  choices,
+  index,
+  onChange,
+}: {
+  label: string;
+  choices: readonly string[];
+  index: number;
+  onChange: (i: number) => void;
+}) {
+  return (
+    <div className="segmented" role="group" aria-label={label}>
+      {choices.map((c, i) => (
+        <button
+          key={c}
+          type="button"
+          className={`segmented__btn ${i === index ? 'segmented__btn--on' : ''}`}
+          aria-pressed={i === index}
+          onClick={() => onChange(i)}
+        >
+          {c}
+        </button>
+      ))}
+    </div>
+  );
+}
 
-  const onFft = (e: ChangeEvent<HTMLSelectElement>) =>
-    update({ fftSize: Number(e.target.value) });
+function OptionControl({
+  def,
+  value,
+  onChange,
+}: {
+  def: OptionDef;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  if (def.kind === 'select' && def.segmented && def.choices) {
+    return (
+      <Row label={def.label}>
+        <Segmented label={def.label} choices={def.choices} index={Math.round(value)} onChange={onChange} />
+      </Row>
+    );
+  }
+  if (def.kind === 'select') {
+    return (
+      <Row label={def.label}>
+        <select value={value} onChange={(e) => onChange(Number(e.target.value))}>
+          {def.choices?.map((c, i) => (
+            <option key={c} value={i}>
+              {c}
+            </option>
+          ))}
+        </select>
+      </Row>
+    );
+  }
+  if (def.kind === 'toggle') {
+    return <Toggle label={def.label} checked={value >= 0.5} onChange={(v) => onChange(v ? 1 : 0)} />;
+  }
+  return (
+    <Slider
+      label={def.label}
+      min={def.min}
+      max={def.max}
+      step={def.step}
+      value={value}
+      fmt={(v) => formatOption(def, v)}
+      onChange={onChange}
+    />
+  );
+}
+
+export function SettingsPanel({ modeId, onClose, onChangeSource }: Props) {
+  const [confirmingSource, setConfirmingSource] = useState(false);
+  const { settings, update, setModeOption, resetMode, reset } = useSettings();
+  const meta = modeMeta(modeId);
+  const values = modeOptionValues(settings, modeId);
+  const customized = Object.keys(settings.modeOptions[modeId] ?? {}).length > 0;
+
   const onPalette = (e: ChangeEvent<HTMLSelectElement>) =>
     update({ paletteId: e.target.value });
 
@@ -108,14 +192,13 @@ export function SettingsPanel({ onClose }: Props) {
         fmt={(v) => `${Math.round(v * 100)}%`}
         onChange={(v) => update({ smoothing: v })}
       />
-      <Row label="FFT Çözünürlüğü" value={`${settings.fftSize}`}>
-        <select value={settings.fftSize} onChange={onFft}>
-          {[512, 1024, 2048, 4096].map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
+      <Row label="FFT Çözünürlüğü">
+        <Segmented
+          label="FFT Çözünürlüğü"
+          choices={FFT_SIZES.map(String)}
+          index={FFT_SIZES.indexOf(settings.fftSize)}
+          onChange={(i) => update({ fftSize: FFT_SIZES[i] })}
+        />
       </Row>
 
       <div className="panel__section">Görünüm</div>
@@ -128,41 +211,45 @@ export function SettingsPanel({ onClose }: Props) {
           ))}
         </select>
       </Row>
-      <Slider
-        label="Bar / Işın Sayısı"
-        min={16}
-        max={128}
-        step={8}
-        value={settings.barCount}
-        fmt={(v) => `${v}`}
-        onChange={(v) => update({ barCount: v })}
-      />
-      <Slider
-        label="Parçacık Yoğunluğu"
-        min={50}
-        max={800}
-        step={10}
-        value={settings.particleCount}
-        fmt={(v) => `${v}`}
-        onChange={(v) => update({ particleCount: v })}
-      />
-      <Slider
-        label="Rotasyon Hızı"
-        min={0}
-        max={1}
-        step={0.05}
-        value={settings.rotationSpeed}
-        fmt={(v) => v.toFixed(2)}
-        onChange={(v) => update({ rotationSpeed: v })}
-      />
-      <Toggle label="Parlama (Glow)" checked={settings.glow} onChange={(v) => update({ glow: v })} />
       <Toggle label="FPS Göstergesi" checked={settings.showFps} onChange={(v) => update({ showFps: v })} />
+
+      <div className="panel__section">{meta.name} — Mod Ayarları</div>
+      {meta.options.filter((def) => !def.showIf || def.showIf(values)).map((def) => (
+        <OptionControl
+          key={`${modeId}:${def.id}`}
+          def={def}
+          value={values[def.id]}
+          onChange={(v) => setModeOption(modeId, def.id, v)}
+        />
+      ))}
+      <button type="button" className="btn btn--ghost" disabled={!customized} onClick={() => resetMode(modeId)}>
+        Bu Modu Sıfırla
+      </button>
+
+      <div className="panel__section">Ses Kaynağı</div>
+      {confirmingSource ? (
+        <div className="panel__confirm">
+          <p className="panel__note">Müzik durur ve kaynak seçim ekranına dönülür. Devam edilsin mi?</p>
+          <div className="panel__confirm-actions">
+            <button type="button" className="btn btn--danger" onClick={onChangeSource}>
+              Evet, değiştir
+            </button>
+            <button type="button" className="btn btn--ghost" onClick={() => setConfirmingSource(false)}>
+              Vazgeç
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button type="button" className="btn btn--ghost" onClick={() => setConfirmingSource(true)}>
+          Kaynağı Değiştir…
+        </button>
+      )}
 
       <div className="panel__foot">
         <button type="button" className="btn" onClick={reset}>
-          Varsayılanlara Dön
+          Tüm Ayarları Sıfırla
         </button>
-        <p className="panel__note">Ayarlar tarayıcınızda otomatik kaydedilir.</p>
+        <p className="panel__note">Ayarlar tarayıcınızda otomatik kaydedilir; mod ayarları her mod için ayrı saklanır.</p>
       </div>
     </aside>
   );

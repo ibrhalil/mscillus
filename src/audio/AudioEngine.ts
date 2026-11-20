@@ -164,6 +164,7 @@ export class AudioEngine {
       beat,
       beatPulse: this.beat.pulse,
       dt,
+      sampleRate: this.ctx.sampleRate,
       time,
     };
   }

@@ -60,19 +60,37 @@ export function rgba(color: Rgb, alpha = 1): string {
   return `rgba(${color[0]},${color[1]},${color[2]},${alpha})`;
 }
 
+// Spektrum ekseni: bin 2'den kullanılabilir üst banda (%72) logaritmik ölçek.
+const MIN_BIN = 2;
+const usableBins = (len: number): number => Math.max(4, Math.floor(len * 0.72));
+
 export function binAt(freq: Uint8Array, t: number): number {
-  const usable = Math.max(4, Math.floor(freq.length * 0.72));
-  const minBin = 2;
   const clamped = Math.min(1, Math.max(0, t));
-  const idx = Math.floor(minBin * Math.pow(usable / minBin, clamped));
+  const idx = Math.floor(MIN_BIN * Math.pow(usableBins(freq.length) / MIN_BIN, clamped));
   return (freq[Math.min(idx, freq.length - 1)] ?? 0) / 255;
 }
 
+/** `binAt` gibi, ama komşu binler arasında doğrusal interpolasyon yapar (düşük frekansta bloklaşmayı önler). */
+export function binAtLerp(freq: Uint8Array, t: number): number {
+  const clamped = Math.min(1, Math.max(0, t));
+  const pos = MIN_BIN * Math.pow(usableBins(freq.length) / MIN_BIN, clamped);
+  const i = Math.floor(pos);
+  const last = freq.length - 1;
+  const a = freq[Math.min(i, last)] ?? 0;
+  const b = freq[Math.min(i + 1, last)] ?? 0;
+  return (a + (b - a) * (pos - i)) / 255;
+}
+
+/** `hz` frekansının spektrum eksenindeki konumu (0..1; aralık dışı değerler olabilir). */
+export function freqPosition(freqLen: number, sampleRate: number, hz: number): number {
+  const bin = hz / (sampleRate / (freqLen * 2));
+  return Math.log(bin / MIN_BIN) / Math.log(usableBins(freqLen) / MIN_BIN);
+}
+
 export function barValue(freq: Uint8Array, i: number, n: number): number {
-  const usable = Math.max(4, Math.floor(freq.length * 0.72));
-  const minBin = 2;
-  const b0 = Math.floor(minBin * Math.pow(usable / minBin, i / n));
-  const b1 = Math.max(b0 + 1, Math.floor(minBin * Math.pow(usable / minBin, (i + 1) / n)));
+  const ratio = usableBins(freq.length) / MIN_BIN;
+  const b0 = Math.floor(MIN_BIN * Math.pow(ratio, i / n));
+  const b1 = Math.max(b0 + 1, Math.floor(MIN_BIN * Math.pow(ratio, (i + 1) / n)));
   let max = 0;
   for (let b = b0; b < b1 && b < freq.length; b++) {
     if (freq[b] > max) max = freq[b];

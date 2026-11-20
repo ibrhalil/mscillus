@@ -1,13 +1,15 @@
 import type * as THREE from 'three';
 import type { AudioEngine } from '../audio/AudioEngine';
-import { createVisualizer } from '../visuals/registry';
-import type { ModeId, Visualizer, VisualizerSettingsView } from '../visuals/types';
+import { createVisualizer, modeMeta } from '../visuals/registry';
+import type { ModeId } from '../visuals/registry';
+import { setGlowQuality } from '../visuals/util';
+import type { RendererKind, Visualizer, VisualizerSettingsView } from '../visuals/types';
 
 interface RenderLoopOptions {
   engine: AudioEngine;
   canvas2d: HTMLCanvasElement;
   canvasGL: HTMLCanvasElement;
-  getSettings: () => VisualizerSettingsView;
+  getSettings: (mode: ModeId) => VisualizerSettingsView;
   onFps?: (fps: number) => void;
 }
 
@@ -24,7 +26,9 @@ export class RenderLoop {
   private ctx2d: CanvasRenderingContext2D;
   private three: ThreeBundle | null = null;
   private viz: Visualizer | null = null;
-  private getSettings: () => VisualizerSettingsView;
+  private kind: RendererKind = 'canvas2d';
+  private modeId: ModeId | null = null;
+  private getSettings: (mode: ModeId) => VisualizerSettingsView;
   private onFps?: (fps: number) => void;
   private observer: ResizeObserver;
   private raf = 0;
@@ -68,7 +72,8 @@ export class RenderLoop {
 
   async setMode(id: ModeId): Promise<void> {
     const token = ++this.modeToken;
-    if (id === 'tunnel' && !this.three) await this.createThree();
+    const kind = modeMeta(id).renderer;
+    if (kind === 'three' && !this.three) await this.createThree();
     if (token !== this.modeToken) return;
 
     this.viz?.dispose();
@@ -76,20 +81,23 @@ export class RenderLoop {
     const viz = await createVisualizer(id, {
       ctx2d: this.ctx2d,
       scene: this.three?.scene ?? null,
+      renderer: this.three?.renderer ?? null,
     });
     if (token !== this.modeToken) {
       viz.dispose();
       return;
     }
     this.viz = viz;
+    this.kind = kind;
+    this.modeId = id;
 
-    const isThree = viz.renderer === 'three';
+    const isThree = kind === 'three';
     this.canvasGL.style.display = isThree ? 'block' : 'none';
     this.canvas2d.style.display = isThree ? 'none' : 'block';
     this.ctx2d.shadowBlur = 0;
     this.ctx2d.globalAlpha = 1;
     this.ctx2d.globalCompositeOperation = 'source-over';
-    this.ctx2d.fillStyle = this.getSettings().palette.bg;
+    this.ctx2d.fillStyle = this.getSettings(id).palette.bg;
     this.ctx2d.fillRect(0, 0, this.cssW, this.cssH);
     viz.init(this.cssW, this.cssH);
   }
@@ -103,18 +111,22 @@ export class RenderLoop {
       this.lastT = t;
       this.elapsed += dt;
 
-      const frame = this.engine.getFrame(dt);
-      const s = this.getSettings();
-      if (this.viz) this.viz.update(frame, s, this.cssW, this.cssH);
+      if (this.viz && this.modeId) {
+        const s = this.getSettings(this.modeId);
+        setGlowQuality(s.glowQuality);
+        const frame = this.engine.getFrame(dt);
+        frame.dt = dt * s.speed;
+        this.viz.update(frame, s, this.cssW, this.cssH);
 
-      if (this.viz?.renderer === 'three' && this.three) {
-        const { renderer, scene, camera } = this.three;
-        const p = frame.beatPulse;
-        camera.position.x = Math.sin(this.elapsed * 43) * 0.3 * p;
-        camera.position.y = Math.cos(this.elapsed * 31) * 0.3 * p;
-        camera.lookAt(0, 0, -40);
-        renderer.setClearColor(s.palette.bg);
-        renderer.render(scene, camera);
+        if (this.kind === 'three' && this.three && !this.viz.manualRender) {
+          const { renderer, scene, camera } = this.three;
+          const p = frame.beatPulse;
+          camera.position.x = Math.sin(this.elapsed * 43) * 0.3 * p;
+          camera.position.y = Math.cos(this.elapsed * 31) * 0.3 * p;
+          camera.lookAt(0, 0, -40);
+          renderer.setClearColor(s.palette.bg);
+          renderer.render(scene, camera);
+        }
       }
 
       this.fpsCount++;

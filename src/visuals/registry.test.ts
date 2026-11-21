@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { adjacentMode, FAVORITE_KEYS, favoriteForKey, favoriteKey, keyLabel, MODES } from './registry';
+import { adjacentMode, FAVORITE_KEYS, favoriteForKey, favoriteKey, keyLabel, MODES, modeMeta } from './registry';
 import type { ModeId } from './registry';
 
 /** App'in kendi kısayolları (bkz. App.tsx klavye işleyicisi); mod harfleri bunlarla çakışmamalı. */
@@ -62,5 +62,44 @@ describe('favori rakam kısayolları', () => {
     const many = MODES.slice(0, 12).map((m) => m.id);
     expect(favoriteKey(many, many[9])).toBe('0');
     expect(favoriteKey(many, many[10])).toBeNull();
+  });
+});
+
+describe('palet kullanımı (Renkler sekmesi)', () => {
+  const defaults = (id: ModeId): Record<string, number> =>
+    Object.fromEntries(modeMeta(id).options.map((o) => [o.id, o.default]));
+  /** Seçeneklerin indeksini ad üzerinden bulur (indeks sırası değişirse test bunu yakalar). */
+  const index = (id: ModeId, option: string, choice: string): number => {
+    const def = modeMeta(id).options.find((o) => o.id === option);
+    const i = def?.choices?.indexOf(choice) ?? -1;
+    expect(i, `${id}.${option} → ${choice}`).toBeGreaterThanOrEqual(0);
+    return i;
+  };
+
+  it('varsayılan ayarlarda çoğu mod paleti kullanır', () => {
+    const without = MODES.filter((m) => !m.usesPalette(defaults(m.id))).map((m) => m.id);
+    expect(without).toEqual(['fire']);
+  });
+
+  it('Ateş: yalnız "Palette" alev renginde', () => {
+    const v = defaults('fire');
+    for (const c of ['Fire', 'Blue Flame']) expect(modeMeta('fire').usesPalette({ ...v, colors: index('fire', 'colors', c) }), c).toBe(false);
+    expect(modeMeta('fire').usesPalette({ ...v, colors: index('fire', 'colors', 'Palette') })).toBe(true);
+  });
+
+  it('Su Dalgası: sade dalga her zaman, gerçekçi suda yalnız "Palette" su rengi', () => {
+    const v = defaults('water');
+    const plain = index('water', 'style', 'Plain Waves');
+    const real = index('water', 'style', 'Realistic Water');
+    expect(modeMeta('water').usesPalette({ ...v, style: plain, colors: index('water', 'colors', 'Ocean') })).toBe(true);
+    expect(modeMeta('water').usesPalette({ ...v, style: real, colors: index('water', 'colors', 'Ocean') })).toBe(false);
+    expect(modeMeta('water').usesPalette({ ...v, style: real, colors: index('water', 'colors', 'Night Lake') })).toBe(false);
+    expect(modeMeta('water').usesPalette({ ...v, style: real, colors: index('water', 'colors', 'Palette') })).toBe(true);
+  });
+
+  it('Kağıt Yırtma: "Paper Tones" paleti kullanmaz', () => {
+    const v = defaults('papertear');
+    expect(modeMeta('papertear').usesPalette({ ...v, colors: index('papertear', 'colors', 'Palette') })).toBe(true);
+    expect(modeMeta('papertear').usesPalette({ ...v, colors: index('papertear', 'colors', 'Paper Tones') })).toBe(false);
   });
 });

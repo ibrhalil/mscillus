@@ -576,11 +576,20 @@ function GeneralTab() {
   );
 }
 
-export function SettingsPanel({ modeId, source, tab, onTabChange, onClose, onChangeSource, onMicDevice }: Props) {
+export function SettingsPanel({ modeId, source, tab: requestedTab, onTabChange, onClose, onChangeSource, onMicDevice }: Props) {
   useLocale();
+  const { settings } = useSettings();
   const meta = modeMeta(modeId);
+  // Palet bu modda (geçerli seçenekleriyle) kullanılmıyorsa Renkler sekmesi gizlenir; açık sekme oradaysa "Bu Mod"a döner.
+  const paletteUsed = meta.usesPalette(modeOptionValues(settings, modeId));
+  const tabs = paletteUsed ? TABS : TABS.filter((def) => def.id !== 'colors');
+  const tab = tabs.some((def) => def.id === requestedTab) ? requestedTab : 'mode';
+  // Kayıtlı sekme de güncellenir: yoksa sonradan paleti kullanan bir seçenek açılınca panel kendiliğinden Renkler'e atlar.
+  useEffect(() => {
+    if (tab !== requestedTab) onTabChange(tab);
+  }, [tab, requestedTab, onTabChange]);
   const scope: Record<PanelTab, ReactNode> = {
-    mode: tNodes('panel.scope.mode', { name: phrase(meta.name) }),
+    mode: tNodes(paletteUsed ? 'panel.scope.mode' : 'panel.scope.modeNoPalette', { name: phrase(meta.name) }),
     colors: t('panel.scope.colors'),
     audio: t('panel.scope.audio'),
     general: t('panel.scope.general'),
@@ -602,7 +611,7 @@ export function SettingsPanel({ modeId, source, tab, onTabChange, onClose, onCha
           </button>
         </div>
         <div className="tabs" role="tablist" aria-label={t('panel.tabs')}>
-          {TABS.map((tabDef) => (
+          {tabs.map((tabDef) => (
             <button
               key={tabDef.id}
               type="button"

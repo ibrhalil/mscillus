@@ -31,6 +31,11 @@ interface ModeConfig {
   uses?: readonly SharedOptionKey[];
   /** Yalnızca bu moda ait ek ayarlar. */
   options?: readonly OptionDef[];
+  /**
+   * Mod, geçerli seçenek değerleriyle seçili paletin renklerini / arka planını kullanıyor mu? Varsayılan: evet.
+   * Hayır ise panelde Renkler sekmesi gizlenir (örn. sabit renkli "Ateş" stili).
+   */
+  usesPalette?: (values: Record<string, number>) => boolean;
 }
 
 interface ModeDef<I extends string = string> {
@@ -42,6 +47,7 @@ interface ModeDef<I extends string = string> {
   renderer: RendererKind;
   /** Panelde gösterilecek tüm seçenekler: kullanılan paylaşılanlar + hız + moda özel. */
   options: readonly OptionDef[];
+  usesPalette: (values: Record<string, number>) => boolean;
   create: (deps: VisualizerDeps) => Promise<Visualizer>;
 }
 
@@ -49,6 +55,8 @@ function need<T>(value: T | null, id: string, what: string): T {
   if (!value) throw new Error(t('error.modeNeeds', { id, what }));
   return value;
 }
+
+const ALWAYS = (): boolean => true;
 
 function optionsOf(cfg: ModeConfig): readonly OptionDef[] {
   return [
@@ -75,6 +83,7 @@ function canvas2d<I extends string>(
     category,
     renderer: 'canvas2d',
     options: optionsOf(cfg),
+    usesPalette: cfg.usesPalette ?? ALWAYS,
     create: async (d) => new (await load())(need(d.ctx2d, id, 'canvas context')),
   };
 }
@@ -94,6 +103,7 @@ function scene3d<I extends string>(
     category,
     renderer: 'three',
     options: optionsOf(cfg),
+    usesPalette: cfg.usesPalette ?? ALWAYS,
     create: async (d) => new (await load())(need(d.scene, id, 'Three.js scene')),
   };
 }
@@ -113,6 +123,7 @@ function webgl<I extends string>(
     category,
     renderer: 'three',
     options: optionsOf(cfg),
+    usesPalette: cfg.usesPalette ?? ALWAYS,
     create: async (d) => new (await load())(need(d.renderer, id, 'WebGL renderer')),
   };
 }
@@ -365,6 +376,7 @@ const DEFS = [
     ],
   }),
   webgl('fire', 'Fire', 'e', 'nature', () => import('./Fire').then((m) => m.Fire), {
+    usesPalette: (v) => v.colors > 1.5, // Fire / Blue Flame sabit renkli
     options: [
       select('colors', 'Flame Color', ['Fire', 'Blue Flame', 'Palette'], 0, { segmented: true }),
       select('layout', 'Layout', ['Focused (strongest peak in center)', 'Symmetric (bass in center)', 'Left to Right']),
@@ -404,6 +416,7 @@ const DEFS = [
     ],
   }),
   webgl('water', 'Water Ripples', 'u', 'nature', () => import('./Water').then((m) => m.Water), {
+    usesPalette: (v) => v.style < 0.5 || v.colors > 1.5, // Realistic Water'da Ocean / Night Lake sabit renkli
     options: [
       select('style', 'Style', ['Plain Waves', 'Realistic Water'], 0, { segmented: true }),
       select('colors', 'Water Color', ['Ocean', 'Night Lake', 'Palette'], 0, { segmented: true, showIf: (v) => v.style >= 0.5 }),
@@ -432,7 +445,7 @@ const DEFS = [
   webgl('rotozoom', 'Rotozoom', 'R', 'psychedelic', () => import('./Rotozoom').then((m) => m.Rotozoom), {
     uses: ['rotationSpeed'],
     options: [
-      select('pattern', 'Background Pattern', ['Truchet Arcs', 'Honeycomb', 'Voronoi', 'Moiré', 'Checkerboard']),
+      select('pattern', 'Background Pattern', ['Truchet Arcs', 'Honeycomb', 'Voronoi', 'Moire', 'Checkerboard']),
       select('persp', 'Appearance', ['Flat', 'Perspective'], 0, { segmented: true }),
       slider('react', 'Music Reactivity (cell glow)', 0, 2.5, 0.05, 1.2, 'x'),
       slider('zoom', 'Zoom', 0.4, 2.5, 0.05, 1, 'x'),
@@ -559,6 +572,7 @@ const DEFS = [
     ],
   }),
   webgl('papertear', 'Paper Tear', 'J', 'psychedelic', () => import('./PaperTear').then((m) => m.PaperTear), {
+    usesPalette: (v) => v.colors < 0.5, // Paper Tones sabit renkli
     options: [
       select('colors', 'Paper Colors', ['Palette', 'Paper Tones'], 0, { segmented: true }),
       slider('tearSpeed', 'Tear Speed', 0.3, 3, 0.05, 1, 'x'),
@@ -592,6 +606,7 @@ export interface ModeMeta {
   category: CategoryId;
   renderer: RendererKind;
   options: readonly OptionDef[];
+  usesPalette: (values: Record<string, number>) => boolean;
 }
 
 const BY_ID = new Map<string, ModeDef>(DEFS.map((d) => [d.id, d]));

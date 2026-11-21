@@ -720,8 +720,9 @@ body {
 
 .tabs {
   display: grid;
-  /* Etiket uzunluğu dile göre değişir ("Bu Mod" / "This Mode"): sütunlar içeriğinden dar olmasın, satır kırılmasın. */
-  grid-template-columns: repeat(4, minmax(max-content, 1fr));
+  /* Sekme sayısı moda, etiket uzunluğu dile göre değişir: sütunlar içeriğinden dar olmasın, satır kırılmasın. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(max-content, 1fr);
   gap: 4px;
   padding: 4px;
   border-radius: 12px;

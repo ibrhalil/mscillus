@@ -7,7 +7,7 @@ import { damp } from './util';
 
 /**
  * Rotozoom: dönen ve yakınlaşan sonsuz zemin (demoscene klasiği). Eski sürüm düz bir dama karoydu; şimdi tam ekran GPU shader:
- * zemin Truchet yayları, petek, Voronoi hücreleri, moiré halkaları veya dama olabilir ve isteğe bağlı olarak PERSPEKTİF
+ * zemin Truchet yayları, petek, Voronoi hücreleri, Moire halkaları veya dama olabilir ve isteğe bağlı olarak PERSPEKTİF
  * (mode-7 benzeri eğik düzlem, ufuk çizgisi, derinlik sisi) ile görünür.
  *
  * MÜZİK: her hücreye rastgele bir frekans (spektrum binı) atanır; o frekans çaldığında hücre/yay ışır → zemin bir "ekolayzır
@@ -115,7 +115,7 @@ vec4 pattern(vec2 p, float t) {
     return vec4(glow, smoothstep(0.7, 0.0, d1) * 0.5, hash(cid), cellEnergy(cid));
   }
   if (uPattern < 3.5) {
-    // Moiré: üç hareketli merkezden halka girişimi
+    // Moire: üç hareketli merkezden halka girişimi
     float v = sin(length(p - vec2(sin(t * 0.3) * 2.0, cos(t * 0.23) * 2.0)) * 5.0)
             + sin(length(p - vec2(cos(t * 0.27) * 2.5, sin(t * 0.33) * 2.0)) * 5.5)
             + sin(length(p + vec2(sin(t * 0.21) * 2.0, cos(t * 0.31) * 2.5)) * 4.5);

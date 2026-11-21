@@ -12,7 +12,7 @@ import { TAU, clearFrame, damp, lighten, strokeGlow } from './util';
  *  - ritim yalnız kalınlık/parlaklık: her halka kendi yarıçapına karşılık gelen frekansla (merkez bas, dış tiz; yumuşatılmış) kalınlaşır/parlar;
  *    vuruşta (bas veya spektral onset; şiddet müziğin kendi ortalamasına göre) merkezden dışa halkaların içinden geçen bir parlaklık dalgası,
  *  - yeni halka merkezde yumuşakça belirir (ani beliriş yok),
- *  - STİL: Çizgi (eski görünüm) veya Dolu Bantlar (Bridget Riley tarzı dolu, dönüşümlü bantlar; komşu halkaların farklı fazlı dalgalanması moiré
+ *  - STİL: Çizgi (eski görünüm) veya Dolu Bantlar (Bridget Riley tarzı dolu, dönüşümlü bantlar; komşu halkaların farklı fazlı dalgalanması Moire
  *    etkisi yaratır).
  */
 

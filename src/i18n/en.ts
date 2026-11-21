@@ -91,7 +91,9 @@ export const en = {
   'panel.tab.audio': 'Audio',
   'panel.tab.general': 'General',
   'panel.scope.mode': 'Affects only the <strong>{name}</strong> mode. Each mode keeps its own settings.',
-  'panel.scope.colors': 'The color palette you choose is used in all modes.',
+  'panel.scope.modeNoPalette':
+    'Affects only the <strong>{name}</strong> mode. Each mode keeps its own settings. The color palette isn’t used with these settings, so the Colors tab is hidden.',
+  'panel.scope.colors': 'The color palette you choose applies to every mode that uses palette colors.',
   'panel.scope.audio': 'Which audio is listened to and how visuals react to it — applies to all modes.',
   'panel.scope.general': 'Automatic mode switching, display and performance — for the whole app.',
   'panel.cancel': 'Cancel',

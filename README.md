@@ -56,7 +56,8 @@ shortcut key (`⇧` = Shift), and your first 10 favorites also get `1`–`9` and
 The settings panel (`S`) has four tabs; each one says what it affects.
 
 - **This Mode:** options for the current mode only (each mode remembers its own).
-- **Colors:** one palette for all modes — pick a preset or build a custom one (2–6 colors + background).
+- **Colors:** one palette for all modes — pick a preset or build a custom one (2–6 colors + background). The tab is
+  hidden for modes that use their own fixed colors (e.g. Fire's “Fire” and “Blue Flame” styles).
 - **Audio:** current source, microphone input device, reaction strength, smoothing and FFT detail.
 - **General:** language (Automatic / English / Türkçe), automatic mode switching (interval, favorites or all modes,
   random or sequential, switch on beat), display options, performance (resolution, FPS limit) and reset.

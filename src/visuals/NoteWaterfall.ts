@@ -2,6 +2,7 @@ import { rgba, sampleGradient } from './palettes';
 import { clearFrame, lighten } from './util';
 import type { Visualizer, VisualizerSettingsView } from './types';
 import type { AudioFrame } from '../audio/types';
+import { getLocale } from '../i18n';
 
 const NAMES_EN = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 const NAMES_TR = ['Do', 'Do#', 'Re', 'Re#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
@@ -113,7 +114,9 @@ export class NoteWaterfall implements Visualizer {
     const low = 12 * (Math.round(o.octave) + 1);
     const rows = octaves * 12;
     const high = low + rows - 1;
-    const names = Math.round(o.naming) === 0 ? NAMES_EN : NAMES_TR;
+    // 0: C D E, 1: Do Re Mi, 2: dile göre (Türkçe arayüzde Do Re Mi)
+    const naming = Math.round(o.naming);
+    const names = naming === 0 || (naming === 2 && getLocale() !== 'tr') ? NAMES_EN : NAMES_TR;
     const noteName = (n: number) => `${names[((n % 12) + 12) % 12]}${Math.floor(n / 12) - 1}`;
 
     // --- Tespit + basılı tutma (histerezis) ---

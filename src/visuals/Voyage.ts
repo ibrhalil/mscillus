@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { sampleGradient } from './palettes';
 import type { Visualizer, VisualizerSettingsView } from './types';
 import type { AudioFrame } from '../audio/types';
+import { t } from '../i18n';
 import { clamp01, damp } from './util';
 
 /**
@@ -39,7 +40,7 @@ function cloudTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 128;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Nebula dokusu için canvas context alınamadı');
+  if (!ctx) throw new Error(t('error.nebulaTexture'));
   for (let k = 0; k < 10; k++) {
     const x = 64 + (Math.random() - 0.5) * 52;
     const y = 64 + (Math.random() - 0.5) * 52;
@@ -58,7 +59,7 @@ function glowTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 64;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Parıltı dokusu için canvas context alınamadı');
+  if (!ctx) throw new Error(t('error.glowTexture'));
   const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
   g.addColorStop(0, 'rgba(255,255,255,1)');
   g.addColorStop(0.18, 'rgba(255,255,255,0.75)');

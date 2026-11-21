@@ -102,6 +102,46 @@ body {
   padding: 40px 24px 28px;
 }
 
+/* Dil seçici: kaynak ekranının sağ üst köşesi (ayarlar paneli bu ekranda henüz yok). */
+.picker__lang {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.picker__lang:hover,
+.picker__lang:focus-within {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--text);
+}
+
+.picker__lang select {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 8px 8px 0;
+  cursor: pointer;
+}
+
+.picker__lang select option {
+  background: #0e101a;
+  color: var(--text);
+}
+
 .picker__hero {
   display: flex;
   flex-direction: column;
@@ -680,7 +720,8 @@ body {
 
 .tabs {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  /* Etiket uzunluğu dile göre değişir ("Bu Mod" / "This Mode"): sütunlar içeriğinden dar olmasın, satır kırılmasın. */
+  grid-template-columns: repeat(4, minmax(max-content, 1fr));
   gap: 4px;
   padding: 4px;
   border-radius: 12px;
@@ -693,6 +734,7 @@ body {
   padding: 8px 4px;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   color: var(--text-dim);
   background: transparent;
   border: 0;

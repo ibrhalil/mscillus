@@ -2,6 +2,11 @@ import { useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent, ReactNode } from 'react';
 import { audioFiles } from '../audio/files';
 import type { SourceType } from '../audio/types';
+import { t } from '../i18n';
+import type { MessageKey } from '../i18n';
+import { tNodes, useLocale } from '../i18n/react';
+import { GlobeIcon } from './icons';
+import { LanguageSelect } from './LanguageSelect';
 import { PickerBackdrop } from './PickerBackdrop';
 
 interface Props {
@@ -53,35 +58,23 @@ const ICONS: Record<SourceType, ReactNode> = {
   ),
 };
 
-const CARDS: { id: SourceType; title: string; desc: string; hint: string; badge?: string }[] = [
-  {
-    id: 'tab',
-    title: 'Tarayıcı Sekmesi',
-    desc: 'YouTube, Spotify Web gibi bir sekmeden ses yakalar',
-    hint: 'Paylaşım penceresinde "Sesi de paylaş" kutusunu işaretleyin',
-    badge: 'Önerilen',
-  },
-  {
-    id: 'system',
-    title: 'Sistem Sesi',
-    desc: 'Masaüstü uygulamalarından çalan tüm sesi yakalar',
-    hint: "macOS'ta çalışmazsa BlackHole gerekir (README'ye bakın)",
-  },
-  {
-    id: 'file',
-    title: 'Yerel Dosya',
-    desc: 'MP3 · FLAC · WAV · OGG dosyalarını görselleştirir',
-    hint: 'Birden çok dosya seçerseniz çalma listesi olur',
-  },
-  {
-    id: 'mic',
-    title: 'Mikrofon',
-    desc: 'Hoparlörden çalan müziği mikrofonla dinler',
-    hint: 'Giriş aygıtı (örn. BlackHole) ayarlar panelinden seçilir',
-  },
+/** Kaynak kartı metinleri (başlık ayar panelinde "şu an dinlenen" olarak da gösterilir). */
+export const SOURCE_TEXT = {
+  tab: { title: 'source.tab.title', desc: 'source.tab.desc', hint: 'source.tab.hint' },
+  system: { title: 'source.system.title', desc: 'source.system.desc', hint: 'source.system.hint' },
+  file: { title: 'source.file.title', desc: 'source.file.desc', hint: 'source.file.hint' },
+  mic: { title: 'source.mic.title', desc: 'source.mic.desc', hint: 'source.mic.hint' },
+} as const satisfies Record<SourceType, { title: MessageKey; desc: MessageKey; hint: MessageKey }>;
+
+const CARDS: { id: SourceType; recommended?: boolean }[] = [
+  { id: 'tab', recommended: true },
+  { id: 'system' },
+  { id: 'file' },
+  { id: 'mic' },
 ];
 
 export function SourcePicker({ onPick, error }: Props) {
+  useLocale();
   const [dragging, setDragging] = useState(false);
   const dragDepth = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +119,10 @@ export function SourcePicker({ onPick, error }: Props) {
       <PickerBackdrop />
 
       <div className="picker__inner">
+        <label className="picker__lang">
+          <GlobeIcon />
+          <LanguageSelect />
+        </label>
         <header className="picker__hero">
           <div className="eq" aria-hidden="true">
             {Array.from({ length: 9 }, (_, i) => (
@@ -133,9 +130,7 @@ export function SourcePicker({ onPick, error }: Props) {
             ))}
           </div>
           <h1 className="picker__title">MSCILLUS</h1>
-          <p className="picker__subtitle">
-            Müziği <em>görün</em>. Ritme göre nefes alan görseller — başlamak için bir ses kaynağı seçin.
-          </p>
+          <p className="picker__subtitle">{tNodes('picker.subtitle')}</p>
         </header>
 
         <div className="picker__cards">
@@ -152,11 +147,11 @@ export function SourcePicker({ onPick, error }: Props) {
               <span className="card__icon">{ICONS[card.id]}</span>
               <span className="card__body">
                 <span className="card__title">
-                  {card.title}
-                  {card.badge && <span className="card__badge">{card.badge}</span>}
+                  {t(SOURCE_TEXT[card.id].title)}
+                  {card.recommended && <span className="card__badge">{t('source.badge.recommended')}</span>}
                 </span>
-                <span className="card__desc">{card.desc}</span>
-                <span className="card__hint">{card.hint}</span>
+                <span className="card__desc">{t(SOURCE_TEXT[card.id].desc)}</span>
+                <span className="card__hint">{t(SOURCE_TEXT[card.id].hint)}</span>
               </span>
               <span className="card__arrow" aria-hidden="true">
                 →
@@ -171,7 +166,7 @@ export function SourcePicker({ onPick, error }: Props) {
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
           </svg>
-          Ya da ses dosyalarını buraya sürükleyip bırakın
+          {t('picker.drop')}
         </button>
 
         {error && (
@@ -182,13 +177,13 @@ export function SourcePicker({ onPick, error }: Props) {
 
         <footer className="picker__foot">
           <span>
-            <kbd className="kbd">/</kbd> mod seçici
+            <kbd className="kbd">/</kbd> {t('picker.foot.modePicker')}
           </span>
           <span>
-            <kbd className="kbd">H</kbd> arayüzü gizle
+            <kbd className="kbd">H</kbd> {t('picker.foot.hideUi')}
           </span>
           <span>
-            <kbd className="kbd">F</kbd> tam ekran
+            <kbd className="kbd">F</kbd> {t('picker.foot.fullscreen')}
           </span>
         </footer>
       </div>
@@ -199,7 +194,7 @@ export function SourcePicker({ onPick, error }: Props) {
             <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
             </svg>
-            Müzik dosyalarını bırakın
+            {t('picker.dropOverlay')}
           </div>
         </div>
       )}

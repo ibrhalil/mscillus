@@ -25,7 +25,7 @@ export class Spectrogram implements Visualizer {
 
   constructor(ctx: CanvasRenderingContext2D) {
     this.ctx = ctx;
-    ({ canvas: this.off, ctx: this.offCtx } = createOffscreen('Spektrogram'));
+    ({ canvas: this.off, ctx: this.offCtx } = createOffscreen('spectrogram'));
   }
 
   init(w: number, h: number): void {

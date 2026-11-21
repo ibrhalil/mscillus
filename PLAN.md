@@ -2,7 +2,7 @@
 
 > **BU DOSYA DEVAM EDEN MODEL/GELİŞTİRİCİ İÇİN TEK KAYNAKTIR.**
 > Bir aşama bittiğinde buradaki kutucuğu işaretle, yeni karar aldıysan "Karar Defteri"ne ekle.
-> Son güncelleme: **v0.4.0** — optimizasyon + onaylı geliştirmeler (2026-11-21): dosya modunda ses yolu ayrıldı (hassasiyet artık duyulan sesi, ses seviyesi görseli değiştirmiyor), zaman tabanlı vuruş algılama, Performans ayarı (otomatik/sabit çözünürlük ölçeği + FPS sınırı), dayanıklılık (deploy sonrası eksik chunk → bir kez yenile, mod hatası bildirimi, WebGL bağlam kaybı kurtarma), Wake Lock + mod adı bildirimi, mikrofon giriş aygıtı seçimi, otomatik mod geçişi (varsayılan favoriler), çalma listesi + medya tuşları, özel palet + 5 yeni palet, Vitest test altyapısı (50 test). Ayrıntı: Karar Defteri sonu. Önceki: **v0.3.0** — mod modernizasyonu tamamlandı (38 mod; GPU'ya taşınan/yeniden yazılan modlar, ortak `onset.ts`, favori rakam kısayolları 1-9/0, her modun kendi harf tuşu; Güneş Sistemi/Neon/Twister silindi). Önceki: v0.2.4 — Solucan Deliği (W) köşe/çökme hataları düzeltildi: kapalı periyodik "salınan halka" yolu (keskin köşe imkânsız), parallel-transport up + viraja yatma (banking). Fosfen (⇧F) v0.3'te geometrik desen olarak yeniden yazıldı.
+> Son güncelleme: **v0.5.0** — İngilizce dil desteği (2026-11-21): arayüz Türkçe/İngilizce, ilk açılışta tarayıcı diline göre (Teknik Not 18, Karar Defteri sonu); README İngilizce ve kısa. Önceki: **v0.4.0** — optimizasyon + onaylı geliştirmeler (2026-11-21): dosya modunda ses yolu ayrıldı (hassasiyet artık duyulan sesi, ses seviyesi görseli değiştirmiyor), zaman tabanlı vuruş algılama, Performans ayarı (otomatik/sabit çözünürlük ölçeği + FPS sınırı), dayanıklılık (deploy sonrası eksik chunk → bir kez yenile, mod hatası bildirimi, WebGL bağlam kaybı kurtarma), Wake Lock + mod adı bildirimi, mikrofon giriş aygıtı seçimi, otomatik mod geçişi (varsayılan favoriler), çalma listesi + medya tuşları, özel palet + 5 yeni palet, Vitest test altyapısı (50 test). Ayrıntı: Karar Defteri sonu. Önceki: **v0.3.0** — mod modernizasyonu tamamlandı (38 mod; GPU'ya taşınan/yeniden yazılan modlar, ortak `onset.ts`, favori rakam kısayolları 1-9/0, her modun kendi harf tuşu; Güneş Sistemi/Neon/Twister silindi). Önceki: v0.2.4 — Solucan Deliği (W) köşe/çökme hataları düzeltildi: kapalı periyodik "salınan halka" yolu (keskin köşe imkânsız), parallel-transport up + viraja yatma (banking). Fosfen (⇧F) v0.3'te geometrik desen olarak yeniden yazıldı.
 
 ---
 
@@ -27,7 +27,7 @@ zamanlı yakalayıp Web Audio API frekans/ritim verisine göre görselleştiren 
 | 3D Görsel | **Three.js** | Tünel modu için |
 | State | **Context + useReducer** (redux/zustand YOK) | Basit ihtiyaç |
 | Bağımlılıklar | `react`, `react-dom`, `three`, `@types/three` (dev), vite/ts araçları | Başka şey EKLEME |
-| Dil/UI metinleri | Türkçe | Kullanıcı talebi |
+| Dil/UI metinleri | Türkçe + İngilizce (ilk açılışta tarayıcı dili, dil seçicili); desteklenmeyen dil → İngilizce | Kullanıcı talebi (ilk sürümlerde yalnız Türkçe'ydi; kod yorumları Türkçe kalır) |
 
 ## 3. Mimari Akış
 
@@ -84,6 +84,11 @@ mscillus/
     │   └── Tunnel3D.ts        # Mod 5: Three.js halka tüneli, freq ile halka pulsasyonu
     ├── render/
     │   └── RenderLoop.ts      # tek rAF; 2 canvas (2D + WebGL) görünürlük yönetimi; ResizeObserver; FPS
+    ├── i18n/
+    │   ├── index.ts           # çekirdek (React'siz): dil algılama, tercih (localStorage `mscillus.lang`), t() / phrase()
+    │   ├── react.tsx          # useLocale / useLanguagePref / tNodes (<em>, <strong> işaretleri)
+    │   ├── en.ts              # İngilizce arayüz kataloğu = KAYNAK; MessageKey anahtar kümesini belirler
+    │   └── tr.ts              # Türkçe katalog + trPhrases (mod / seçenek / kategori / palet adı çevirileri)
     ├── store/
     │   └── settings.tsx       # SettingsProvider + useSettings + localStorage persist
     └── ui/
@@ -214,6 +219,9 @@ uppercase key `⇧X` olarak etiketlenir.
   `npm run build` GEÇTİ; headless Chromium ile duman testi yapıldı (dosya listesi + bozuk dosya atlama, ayar paneli,
   çözünürlük ölçeği, mikrofon sahte aygıt listesi, WebGL modu, otomatik geçiş, yenilemede son mod). **Gerçek müzik /
   gerçek GPU / medya tuşları / Wake Lock / bağlam kaybı TARAYICIDA ELLE DOĞRULANMADI.**
+- [x] 11. **v0.5.0 İngilizce dil desteği** (bkz. Karar Defteri sonu). `npm test` (8 dosya / 66 test) + `npm run build` GEÇTİ;
+  headless Chromium'da tr-TR / en-US / de-DE ile kontrol edildi. README.md İngilizce ve kısa yeniden yazıldı (Türkçe
+  ayrıntılı sürüm git geçmişinde: `git show 90381e7:README.md`).
 
 **SIRADAKİ ADIMLAR (öncelik sırasıyla):**
 1. **Mod birleştirme / karıştırma özelliği** — kullanıcı talebi (v0.1.6): "ileride bu modları
@@ -267,6 +275,24 @@ uppercase key `⇧X` olarak etiketlenir.
     çözünürlük ölçeği dahil); `Math.min(2, devicePixelRatio)` doğrudan kullanılmamalı.
 17. **Deploy sonrası eski sekme:** hash'li mod parçası bulunamazsa `vite:preloadError` (main.tsx) veya `setMode`
     hatası → `reloadOnce()` (30 sn korumalı). Son mod sessionStorage'dan geri gelir; ses kaynağı yeniden seçilmeli.
+18. **Çok dillilik (i18n, v0.4+):** `src/i18n/`. İki ayrı mekanizma var:
+    - *Arayüz metinleri* → `t('anahtar', { yerTutucu })`. Anahtar kümesini `en.ts` belirler; `tr.ts` `Record<MessageKey, string>`
+      olduğundan eksik/fazla anahtar derleme hatasıdır. İşaretli metin (`<em>`, `<strong>`) için `tNodes()`.
+    - *Mod / seçenek / kategori / palet adları* → tanım dosyalarında (`registry.ts`, `options.ts`, `palettes.ts`)
+      **İngilizce kaynak metin** olarak yazılır, ekranda `phrase(metin)` ile gösterilir; çeviri `tr.ts` içindeki `trPhrases`
+      tablosundadır (anahtar = İngilizce metin). Yeni mod / seçenek eklerken İngilizce yaz ve `trPhrases`'e Türkçesini ekle
+      (adı aynı kalanlar da eklenir); `i18n.test.ts` eksik çeviriyi, kullanılmayan eski girdiyi ve kaynak metinde Türkçe
+      harf kalmasını yakalar. Aynı Türkçe karşılığı olan iki farklı İngilizce metin sorun değil, tersi (aynı İngilizce →
+      iki farklı Türkçe) olamaz.
+    - *Dil seçimi:* tercih `Settings`'in DIŞINDA, `localStorage['mscillus.lang']` ('tr' | 'en'; yoksa = otomatik).
+      Otomatik: `navigator.languages` sırasıyla ilk desteklenen dil, hiçbiri yoksa İngilizce (`detectLocale`, testli).
+      "Tüm Ayarları Sıfırla" dili etkilemez. Dil değişince `<html lang>`, `<title>` ve description meta'sı güncellenir
+      (`index.html` statik hâli İngilizce; `text-transform: uppercase` başlıkları `lang`'a duyarlıdır, Türkçe İ/ı doğru).
+    - *Bileşen kuralı:* metin gösteren her bileşen `useLocale()` çağırır (dil değişince yeniden çizilir); `t`/`phrase` modül
+      düzeyindedir, React dışında (AudioEngine hataları, Vu etiketleri) doğrudan kullanılır. Canvas'a çizilen yazılar
+      (`Vu`) çizim anında `t()` çağırır → dil canlı değişir. Hata mesajları fırlatıldığı andaki dilde kalır.
+    - *Seçenek değerleri dilden bağımsızdır:* `select` seçenekleri dizin olarak saklanır; çeviri yalnız gösterimdedir.
+      Nota Rulosu "Nota Adları" 3. seçenek **Auto** (varsayılan): Türkçe arayüzde Do Re Mi, diğerlerinde C D E.
 
 ## 10. Karar Defteri (tarih sırasıyla, devam eden model için)
 
@@ -1073,6 +1099,8 @@ uppercase key `⇧X` olarak etiketlenir.
   - **Önerilip kullanıcının SEÇMEDİKLERİ (yapılmadı):** ekran görüntüsü (PNG) + sesli video kaydı (MediaRecorder); ayar dışa/içe aktarma (JSON). Ayrıca fark edilen: proje favicon'u yok (`/favicon.ico` 404, konsolda hata) — önerilebilir.
 
 - **v0.4.0 (devam) — AYAR PANELİ SEKMELERE AYRILDI (2026-11-21; kullanıcı: "ayarlar butonu çok karmaşık oldu, hangisi mod ayarı hangisi genel ayar hangisi renk … kullanıcı anlamıyor"):** tek uzun liste yerine 4 sekme: **Bu Mod** (yalnız etkin modun seçenekleri + "Bu Modu Varsayılana Döndür"; üstte mod adı ve harfi), **Renkler** (palet seçimi açılır liste yerine renk şeritli kart ızgarası, `role=radiogroup`; Özel kartı seçilince düzenleyici), **Ses** (şu an dinlenen kaynak, mikrofonda giriş aygıtı, kaynağı değiştir; Tepki Gücü (Hassasiyet) / Yumuşatma / Frekans Ayrıntısı (FFT) — her birinin altında kısa açıklama), **Genel** (Otomatik Mod Geçişi, Ekran: mod adı bildirimi + FPS, Performans, Sıfırlama). Başlık + sekmeler + kapsam satırı ("Yalnızca **X** modunu etkiler…" / "tüm modlarda geçerli") kaydırırken yapışkan (`.panel__top`). Anahtarlar artık etiketle aynı satırda (`Row inline`), açıklamalar `hint` ile. "Tüm Ayarları Sıfırla" artık onay istiyor (eskiden tek tıkla favoriler dahil her şeyi siliyordu); onay bileşeni `ConfirmButton` kaynak değiştirme ile ortak. Son açık sekme oturum boyunca App state'inde (`panelTab`, varsayılan "Bu Mod"). Headless Chromium'da 4 sekme ekran görüntüsüyle kontrol edildi, konsol hatasız.
+
+- **v0.5.0 — İngilizce dil desteği (2026-11-21; kullanıcı: "ingilizce dil desteği getirelim proje globalde yer alabilir, browser dili neyse ilk başta öyle açılsın"):** arayüz artık Türkçe + İngilizce (Teknik Not 18). Kararlar: (1) **ilk açılış** `navigator.languages` sırasına göre (tr → Türkçe, en → İngilizce); desteklenmeyen dil (de, fr…) → İngilizce (proje global); (2) **dil seçici** kaynak ekranının sağ üstünde (ayar paneli orada yok) ve Ayarlar → Genel → Dil; seçenekler Otomatik / English / Türkçe, tercih `localStorage['mscillus.lang']` (Settings dışında, sıfırlamadan etkilenmez); (3) **mod / seçenek / palet adları İngilizce kaynak** olarak registry'ye yazıldı (eski Türkçe etiketler birebir `trPhrases`'e taşındı; Türkçe arayüz değişmedi — 38 mod adı ve panel metinleri eski sürümle aynı doğrulandı), seçenek DEĞERLERİ dizin olarak saklandığı için eski kayıtlı ayarlar bozulmadı; (4) arama kutusu hem çevrilmiş hem İngilizce adla eşleşir (README / dokümanlar İngilizce adı da kullanır); (5) `Kum Levhası` İngilizce'de **Chladni Plate**, `Parazit` → **Static**, `Hipnoz` → **Hypnosis** (Türkçe adlar tr'de aynen korunur); (6) Nota Rulosu "Nota Adları"na 3. seçenek **Auto** (varsayılan) eklendi — Türkçe'de eskisi gibi Do Re Mi, İngilizce'de C D E (daha önce kullanıcı varsayılanı değiştirmediyse görünüm aynı kalır, yalnız İngilizce arayüz etkilenir); (7) sekme çubuğu `minmax(max-content, 1fr)` + `nowrap` (İngilizce "This Mode" kırılıyordu); (8) `index.html` statik hâli İngilizce (`lang="en"`), çalışırken `<html lang>`/başlık/description dile uyar. Testler: `src/i18n/i18n.test.ts` (dil algılama, tercih saklama/depolama kapalıyken, yer tutucu, katalog anahtar + yer tutucu eşitliği, registry/palet/kategori çeviri kapsamı + kullanılmayan çeviri + kaynakta Türkçe harf yok); toplam 8 dosya / 66 test. Headless Chromium'da tr-TR / en-US / de-DE tarayıcı dilleriyle kaynak ekranı, mod seçici (arama), 4 ayar sekmesi ve 38 modun ayar paneli kontrol edildi: İngilizce panellerde Türkçe sızıntı yok, konsol hatasız, dil seçici + yenileme sonrası kalıcılık çalışıyor. Ana paket +29 kB (gzip +9 kB; iki katalog da pakette). **Önerilip yapılmayanlar:** PLAN.md'nin İngilizce sürümü (README sonradan kullanıcı isteğiyle İngilizce + kısa yapıldı, sürüm 0.5.0'a çıkarıldı); katalogları dile göre tembel yüklemek (ana paketi küçültür ama ilk render'ı asenkron yapar); yerel sayı biçimi (Türkçe'de ondalık virgül; kaydırıcı değerleri şimdilik her dilde `1.00x`); üçüncü dil eklemek (`LOCALES` + katalog + `trPhrases` benzeri tablo yeterli, eksikleri test yakalar). Doğrulanmadı: gerçek bir sekme/mikrofon sesiyle İngilizce hata mesajları (yalnız sahte mikrofon denendi).
 
 ## 11. Doğrulama Komutları
 

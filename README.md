@@ -1,115 +1,85 @@
-# Mscillus — Müzik Görselleştirici
+# Mscillus — Music Visualizer
 
-Bilgisayarda çalan müziği gerçek zamanlı yakalayıp ritim ve frekans verisine göre görselleştiren
-web uygulaması. 38 görsel mod, 4 ses kaynağı, tarayıcı içi özelleştirme paneli, otomatik mod geçişi,
-yerel dosyalar için çalma listesi.
+A web app that captures the music playing on your computer in real time and visualizes it from the beat and
+frequency data. 38 visual modes, 4 audio sources, in-browser customization, automatic mode switching and a playlist
+for local files. The interface is available in **English** and **Turkish** (it opens in your browser's language).
 
-## Çalıştırma
+## Getting started
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173
-npm run build      # tsc + prod build (dist/)
-npm run preview    # prod önizleme
-npm test           # birim testleri (Vitest)
+npm run build      # type-check + production build (dist/)
+npm run preview    # preview the production build
+npm test           # unit tests (Vitest)
 ```
 
-Chrome veya Edge önerilir (ses yakalama uyumluluğu en yüksek tarayıcılar).
+Chrome or Edge is recommended (best audio-capture support).
 
-## Ses Kaynakları
+## Audio sources
 
-| Kaynak | Nasıl | Not |
+| Source | How | Notes |
 |---|---|---|
-| **Tarayıcı Sekmesi** | Kaynak seçin → paylaşım penceresinde sekmeyi seçin → **"Sesi de paylaş" kutusunu işaretleyin** | YouTube, Spotify Web vb. En güvenilir yöntem. |
-| **Sistem Sesi** | Paylaşım penceresinde "Tüm Ekran" seçin (ses kutusu varsa işaretleyin) | Windows'ta sorunsuz. **macOS'ta** Chrome sürümüne bağlı olarak ses paylaşılmayabilir → aşağıdaki BlackHole rehberi. |
-| **Yerel Dosya** | Kaynak kartına tıklayın veya dosyaları ekrana sürükleyip bırakın | MP3 / FLAC / WAV / OGG. Birden çok dosya = **çalma listesi** (ileri/geri, tekrar, karıştır, liste penceresi). Çalarken ekrana bırakılan dosyalar listeye eklenir. Klavyedeki medya tuşları ve işletim sistemi medya kontrolleri çalışır. |
-| **Mikrofon** | Mikrofon kartına tıklayın, izin verin | Hoparlörden çalan müziği duyma yoluyla görselleştirir (kulaklıkla önerilir). **Giriş aygıtı** (örn. BlackHole) Ayarlar → Ses Kaynağı'ndan seçilir ve hatırlanır. |
+| **Browser Tab** | Pick the tab in the sharing dialog and tick **"Also share tab audio"** | YouTube, Spotify Web, etc. The most reliable option. |
+| **System Audio** | Share "Entire Screen" and tick "Also share system audio" | Works on Windows. On macOS see the BlackHole guide below. |
+| **Local File** | Click the card or drop files onto the screen | MP3 / FLAC / WAV / OGG. Several files become a playlist. |
+| **Microphone** | Click the card and allow access | Listens to your speakers. Choose the input device in Settings → Audio. |
 
-## Görsel Modlar
+## Visual modes
 
-38 mod, 6 kategoride. Mod çubuğundaki adın üstüne tıklayın veya `/` ile mod seçiciyi açın (arama + favoriler); `⇧` = Shift ile basın.
+Open the mode picker with `/` (search + favorites) or click the mode name in the top bar. Every mode has its own
+shortcut key (`⇧` = Shift), and your first 10 favorites also get `1`–`9` and `0`.
 
-**Favori kısayolları:** her modun kendi harf tuşu vardır. Favoriye eklediğiniz modlar ayrıca eklenme sırasıyla `1`–`9` ve `0` tuşlarına atanır (ilk 10 favori; favoriden çıkarınca sıradakiler kayar). Rakam, mod çubuğunda ve seçicide harfin yanında görünür.
+- **Spectrum & Wave:** `⇧S` Spectrum Bars · `D` Radial · `V` Waveform · `⇧A` Spectrogram · `⇧V` VU Meters · `⇧W` Note Waterfall
+- **Psychedelic:** `A` Ambience · `M` MilkDrop · `G` G-Force · `Z` Chladni Plate · `K` Kaleidoscope · `P` Plasma · `⇧R` Rotozoom · `⇧D` Hypnosis · `⇧K` Op-Art Rings · `⇧B` Metaball · `⇧F` Phosphene · `⇧J` Paper Tear · `⇧T` Paint Drip
+- **Space & 3D:** `T` 3D Tunnel · `O` Plenoptic (XP) · `I` Light Speed · `W` Wormhole · `Y` Galaxy · `N` Space Voyage
+- **Nature:** `E` Fire · `U` Water Ripples · `Q` Bubbles · `R` Snow · `⇧Y` Rain · `⇧L` Lightning
+- **Light & Particles:** `⇧P` Particles · `L` Ribbons · `B` Laser · `C` Fireworks
+- **Retro & Stage:** `X` Matrix · `⇧U` Static · `⇧X` Audio Pong
 
-- **Spektrum & Dalga:** `⇧S` Spektrum Barları · `D` Dairesel · `V` Dalga Formu · `⇧A` Spektrogram · `⇧V` VU Göstergeleri · `⇧W` Nota Rulosu
-- **Psikedelik:** `A` Ambience · `M` MilkDrop (Hayal Bulutu) · `G` G-Force · `Z` Kum Levhası · `K` Kaleydoskop · `P` Plazma · `⇧R` Rotozoom · `⇧D` Hipnoz · `⇧K` Op-Art Halkalar · `⇧B` Metaball · `⇧F` Fosfen · `⇧J` Kağıt Yırtma · `⇧T` Boya Damlası
-- **Uzay & 3D:** `T` 3D Tünel · `O` Plenoptic (XP) · `I` Işık Hızı · `W` Solucan Deliği · `Y` Galaksi · `N` Uzay Yolculuğu
-- **Doğa:** `E` Ateş · `U` Su Dalgası · `Q` Baloncuklar · `R` Kar · `⇧Y` Yağmur · `⇧L` Şimşek
-- **Işık & Parçacık:** `⇧P` Parçacıklar · `L` Şeritler · `B` Lazer · `C` Havai Fişek
-- **Retro & Sahne:** `X` Matris · `⇧U` Parazit · `⇧X` Audio Pong
+## Keyboard shortcuts
 
-**MilkDrop** bir "hayal bulutu" gibi çalışır: feedback shader her kareyi yavaşça akıtır, bulutlar süzülür, bass ile nefes alır. Eski AVS Halka/Noktalar/Dalgalar artık **Dairesel** modunun stil ve seçenekleridir; CRT → **Dalga Formu** (CRT Efekti), Gece Şehri/Silüet → **Spektrum Barları** (Şehir stili), Spirograf → **Şeritler** (Spiro eğrisi), Magma/Köpük → **Parçacıklar** (Fıskiye), Blob/Lav → **Metaball** (Lav hareketi, Yumuşak ışık), Girdap → **Hipnoz** (yalnız hipnoz spirali kaldı), Küp Alanı → **Plenoptic** (Küp şekli), 3D Yörünge silindi, Kuantum Dalışı → **Solucan Deliği**. Fraktal, Chladni figürleri yapan **Kum Levhası** ile değiştirildi.
-
-Tüm modlar bass vuruş algılamasıyla (beat detection) senkronize çalışır.
-
-## Klavye Kısayolları
-
-| Tuş | İşlev |
+| Key | Action |
 |---|---|
-| Harfler ve `⇧Shift+harf` (mod seçicide gösterilir) | Görsel modu değiştir (her modun kendi harfi var) |
-| `1`–`9`, `0` | Favori modlar (eklenme sırasıyla ilk 10 favori) |
-| `←` / `→` | Önceki / sonraki mod |
-| `⇧←` / `⇧→` | Önceki / sonraki parça (dosya kaynağı; ilk 3 sn'den sonra `⇧←` parçayı başa sarar) |
-| `/` | Mod seçiciyi aç (arama + kategoriler; ★ ile favori ekle/çıkar) |
-| `Space` | Oynat/Duraklat (dosya kaynağı) |
-| `S` | Ayar panelini aç/kapat |
-| `H` | Arayüzü gizle/göster |
-| `F` | Tam ekran |
-| `Esc` | Mod seçiciyi / paneli kapat |
+| Mode letters, `1`–`9`, `0` | Switch mode / jump to a favorite |
+| `←` / `→` | Previous / next mode |
+| `⇧←` / `⇧→` | Previous / next track (file source) |
+| `/` | Mode picker |
+| `Space` | Play / pause (file source) |
+| `S` | Settings panel |
+| `H` | Hide / show the interface |
+| `F` | Full screen |
+| `Esc` | Close the picker / panel |
 
-Arayüz, fare veya klavye ~3,5 sn hareketsiz kalınca kendiliğinden silinir. Klavyeyle veya otomatik geçişle mod
-değişince adı ekranda kısa süre görünür (arayüz gizliyken de). Görselleştirme açıkken ekran kararmaz / uyumaz
-(Screen Wake Lock).
+## Settings
 
-## Özelleştirme
+The settings panel (`S`) has four tabs; each one says what it affects.
 
-Sağ üstteki **Ayarlar** paneli (`S`) dört sekmeden oluşur; her sekmenin altında neyi etkilediği yazar. Panel en son
-açık bıraktığınız sekmeyle açılır.
+- **This Mode:** options for the current mode only (each mode remembers its own).
+- **Colors:** one palette for all modes — pick a preset or build a custom one (2–6 colors + background).
+- **Audio:** current source, microphone input device, reaction strength, smoothing and FFT detail.
+- **General:** language (Automatic / English / Türkçe), automatic mode switching (interval, favorites or all modes,
+  random or sequential, switch on beat), display options, performance (resolution, FPS limit) and reset.
 
-- **Bu Mod:** yalnızca o an açık olan modun ayarları (bar sayısı, parlama, animasyon hızı ve moda özel seçenekler —
-  örn. Spektrum Barları'nda bar aralığı, Kaleydoskop'ta segment sayısı). Değerler her mod için ayrı saklanır;
-  **Bu Modu Varsayılana Döndür** yalnızca o modu sıfırlar.
-- **Renkler:** tüm modlarda geçerli renk paleti; kartlardan seçilir (Neon, Gün Batımı, Okyanus, Gökkuşağı, Monokrom,
-  Vaporwave, Siberpunk, Orman, Kor, Pastel) veya **Özel**: 2-6 renk + arka plan, renk seçicilerle.
-- **Ses:** dinlenen kaynak, mikrofon kaynağında **giriş aygıtı**, kaynağı değiştir; *Tepki Gücü* (hassasiyet — yalnız
-  görselin tepkisini değiştirir, duyulan sesi değil), *Yumuşatma*, *Frekans Ayrıntısı* (FFT).
-- **Genel:**
-  - *Otomatik Mod Geçişi:* açıkken belirlenen sürede (10 sn – 5 dk) bir mod değişir; isteğe bağlı olarak süre dolunca
-    sıradaki vuruşu bekler (en fazla 4 sn). Varsayılan havuz **favoriler** (en az 2 favori gerekir, yoksa tüm modlar);
-    "Tüm Modlar" da seçilebilir. Sıra rastgele (her mod bir kez gösterilmeden tekrar yok) veya sıralı. Geçişte kısa
-    karartma olur; ayar paneli veya mod seçici açıkken geçiş bekler. Üst çubuktaki döngü düğmesi hızlı aç/kapat sağlar.
-  - *Ekran:* mod adı bildirimi, FPS göstergesi.
-  - *Performans:* *Çözünürlük* — Otomatik (kare hızı düşünce çizim çözünürlüğünü kademeli azaltır, rahatlayınca geri
-    yükseltir; küçültme işe yaramıyorsa geri alır) / Yüksek / Dengeli (%75) / Düşük (%50). *FPS Sınırı* — Sınırsız / 60 /
-    30 (pil ve ısınma için). FPS göstergesi açıksa azaltılmış çözünürlük `· %70` gibi görünür.
-  - *Tüm Ayarları Sıfırla* (onay ister; favoriler ve özel palet de sıfırlanır).
+Settings are saved in `localStorage`; the language choice is stored separately and isn't affected by a reset.
 
-Tüm ayarlar `localStorage`'a kaydedilir (`mscillus.settings.v1`). Son kullanılan mod sekme oturumu boyunca
-hatırlanır (sayfa yenilenince aynı modla açılır).
+## System audio on macOS (BlackHole)
 
-## macOS'ta Sistem Sesi: BlackHole Rehberi
+macOS doesn't let apps listen to system audio directly, and Chrome's "Entire Screen + audio" sharing doesn't always
+work. If it doesn't:
 
-macOS, uygulamaların sistem sesini doğrudan dinlemesine izin vermez. Chrome'un "Tüm Ekran +
-ses" paylaşımı bazı sürümlerde çalışır; çalışmazsa:
+1. Install [BlackHole 2ch](https://existential.audio/blackhole/).
+2. In **Sound settings → Output**, create a Multi-Output Device (built-in speakers + BlackHole 2ch) and select it.
+3. In Mscillus choose the **Microphone** source, then pick **BlackHole 2ch** under Settings → Audio → Input Device.
+   The choice is remembered; you don't need to change the system input.
 
-1. [BlackHole 2ch](https://existential.audio/blackhole/) indirin ve kurun.
-2. **Ses Ayarları → Çıkış**: Multi-Output Device oluşturun (Dahili Hoparlör + BlackHole 2ch),
-   çıktı olarak onu seçin.
-3. Mscillus'ta **Mikrofon** kaynağını seçin, sonra **Ayarlar → Ses Kaynağı → Giriş Aygıtı**'ndan
-   **BlackHole 2ch**'yi seçin — artık sistem sesini yakalar. Seçim hatırlanır; sistemin giriş aygıtını
-   değiştirmeniz gerekmez.
+## Project layout
 
-Not: Multi-Output Device kullanırken sistem ses ayarlarından hafif gecikme olabilir.
+- `src/audio/` — Web Audio engine, beat detector, playlist
+- `src/visuals/` — the `Visualizer` interface, mode registry and one file per mode (loaded lazily)
+- `src/render/` — render loop, automatic resolution scaling, automatic mode switching
+- `src/store/` — settings (Context + `localStorage`)
+- `src/i18n/` — translations (`en.ts` is the source; add a language by adding a catalog and a `LOCALES` entry)
+- `src/ui/` — React components
 
-## Mimari Özet
-
-- `src/audio/` — Web Audio motoru (AnalyserNode), 4 kaynak, zaman tabanlı beat detector, çalma listesi
-  (`Playlist.ts`). Dosya kaynağında analiz kolu (hassasiyet) ile hoparlör kolu (ses seviyesi) ayrıdır.
-- `src/visuals/` — `Visualizer` arayüzü + registry; yeni mod eklemek için bir sınıf yazıp
-  `registry.ts`'deki tabloya tek satır eklemek yeterli (her mod kendi chunk'ında tembel yüklenir)
-- `src/render/RenderLoop.ts` — tek rAF döngüsü, çift canvas (2D + WebGL) yönetimi, FPS sınırı, çözünürlük ölçeği
-  (`AutoScale.ts`), mod hatası / WebGL bağlam kaybı kurtarma; `AutoCycle.ts` — otomatik mod geçişi
-- `src/store/settings.tsx` — ayarlar (Context + useReducer + localStorage)
-- `src/ui/` — React bileşenleri (kaynak seçici, mod çipleri, ayar paneli, transport)
-
-Detaylı plan ve durum takibi: [PLAN.md](./PLAN.md)
+More detail and the decision log: [PLAN.md](./PLAN.md) (in Turkish).

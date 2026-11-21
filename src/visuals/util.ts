@@ -1,6 +1,7 @@
 import { hexToRgb, rgba } from './palettes';
 import type { Rgb } from './palettes';
 import type { VisualizerSettingsView } from './types';
+import { t } from '../i18n';
 
 export const TAU = Math.PI * 2;
 
@@ -89,7 +90,7 @@ export function setGlow(ctx: CanvasRenderingContext2D, on: boolean, blur: number
 export function createOffscreen(label: string): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error(`${label} offscreen context alınamadı`);
+  if (!ctx) throw new Error(t('error.offscreen', { label }));
   return { canvas, ctx };
 }
 
@@ -105,7 +106,7 @@ function glowSprite(color: Rgb): HTMLCanvasElement {
   const key = ((color[0] >> 4) << 8) | ((color[1] >> 4) << 4) | (color[2] >> 4);
   let sprite = glowSprites.get(key);
   if (sprite) return sprite;
-  const { canvas, ctx } = createOffscreen('Parlama sprite');
+  const { canvas, ctx } = createOffscreen('glow sprite');
   canvas.width = canvas.height = SPRITE_SIZE;
   const c = SPRITE_SIZE / 2;
   const g = ctx.createRadialGradient(c, c, 0, c, c, c);
@@ -169,8 +170,8 @@ export function strokeGlow(
  * bloom bir sonraki karede yeniden örneklenip geri besleme oluşturur.
  */
 export class Bloom {
-  private mid = createOffscreen('Bloom');
-  private small = createOffscreen('Bloom');
+  private mid = createOffscreen('bloom');
+  private small = createOffscreen('bloom');
 
   apply(ctx: CanvasRenderingContext2D, w: number, h: number, strength = 0.55): void {
     const src = ctx.canvas;

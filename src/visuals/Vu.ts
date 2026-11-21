@@ -2,11 +2,12 @@ import { rgba, sampleGradient } from './palettes';
 import { TAU, clamp01, clearFrame, lighten, setGlow } from './util';
 import type { Visualizer, VisualizerSettingsView } from './types';
 import type { AudioFrame } from '../audio/types';
+import { t } from '../i18n';
 
 const GAUGES = 4;
 const A0 = -Math.PI * 0.85;
 const A1 = -Math.PI * 0.15;
-const LABELS = ['BAS', 'ORTA', 'TİZ', 'SEVİYE'];
+const LABEL_KEYS = ['vu.bass', 'vu.mid', 'vu.treble', 'vu.level'] as const;
 const PEAK_HOLD = 0.9;
 const PEAK_FALL = 0.22;
 /** Seviye göstergesi için dB aralığı: -34 dB (boş) … 0 dB (tam). */
@@ -187,7 +188,7 @@ export class Vu implements Visualizer {
         ctx.fillStyle = rgba(lighten(accent, 0.3), 0.7);
         ctx.font = `${Math.max(9, R * 0.14)}px monospace`;
         ctx.textAlign = 'center';
-        ctx.fillText(LABELS[i], cx, cy + R * 0.65);
+        ctx.fillText(t(LABEL_KEYS[i]), cx, cy + R * 0.65);
       }
     }
     ctx.textAlign = 'start';

@@ -43,8 +43,8 @@ const MODE_PAIRS: [number, number][] = [
 
 export class Chladni implements Visualizer {
   private ctx: CanvasRenderingContext2D;
-  private sand = createOffscreen('Kum levhası');
-  private shade = createOffscreen('Levha ışıması');
+  private sand = createOffscreen('Chladni sand');
+  private shade = createOffscreen('Chladni glow');
   private img: ImageData;
   private shadeImg: ImageData;
   private resW = RES;

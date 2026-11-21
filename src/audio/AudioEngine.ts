@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { BeatDetector } from './beatDetector';
 import { trackTitle } from './files';
 import { Playlist } from './Playlist';
@@ -90,7 +91,7 @@ export class AudioEngine {
   }
 
   private stopStream(): void {
-    this.stream?.getTracks().forEach((t) => t.stop());
+    this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
   }
 
@@ -120,7 +121,7 @@ export class AudioEngine {
       audio: true,
     });
     if (stream.getAudioTracks().length === 0) {
-      stream.getTracks().forEach((t) => t.stop());
+      stream.getTracks().forEach((track) => track.stop());
       throw new Error(errorHint);
     }
     return stream;
@@ -136,16 +137,12 @@ export class AudioEngine {
   }
 
   async startTab(): Promise<void> {
-    const stream = await this.captureDisplay(
-      'Paylaşılan sekmeden ses gelmedi. Paylaşım penceresinde "Sesi de paylaş" kutusunu işaretlemelisiniz.',
-    );
+    const stream = await this.captureDisplay(t('error.tabNoAudio'));
     await this.attachStream(stream, 'tab');
   }
 
   async startSystem(): Promise<void> {
-    const stream = await this.captureDisplay(
-      'Sistem sesi yakalanamadı. Windows\'ta "Tüm Ekran" paylaşırken "Sesi de paylaş" kutusunu işaretleyin. macOS\'ta Chrome tüm ekran sesini desteklemeyebilir — README\'deki BlackHole rehberine bakın.',
-    );
+    const stream = await this.captureDisplay(t('error.systemNoAudio'));
     await this.attachStream(stream, 'system');
   }
 

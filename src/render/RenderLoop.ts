@@ -6,6 +6,7 @@ import type { ModeId } from '../visuals/registry';
 import { pixelRatio, setGlowQuality, setRenderScale } from '../visuals/util';
 import type { RendererKind, Visualizer, VisualizerSettingsView } from '../visuals/types';
 import { AutoScale } from './AutoScale';
+import { t } from '../i18n';
 
 export type Resolution = 'auto' | 'high' | 'medium' | 'low';
 
@@ -72,7 +73,7 @@ export class RenderLoop {
     this.canvasGL = opts.canvasGL;
 
     const ctx = this.canvas2d.getContext('2d');
-    if (!ctx) throw new Error('2D canvas context alınamadı');
+    if (!ctx) throw new Error(t('error.canvas2d'));
     this.ctx2d = ctx;
 
     this.canvasGL.addEventListener('webglcontextlost', this.handleContextLost);

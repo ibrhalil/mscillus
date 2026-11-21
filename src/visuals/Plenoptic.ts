@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { binAt, sampleGradient } from './palettes';
 import type { Visualizer, VisualizerSettingsView } from './types';
 import type { AudioFrame } from '../audio/types';
+import { t } from '../i18n';
 import { TAU, clamp01, damp } from './util';
 
 const ORB_COUNT = 260;
@@ -29,7 +30,7 @@ function glowTexture(): THREE.CanvasTexture {
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = 128;
   const ctx = canvas.getContext('2d');
-  if (!ctx) throw new Error('Parıltı dokusu için canvas context alınamadı');
+  if (!ctx) throw new Error(t('error.glowTexture'));
   const g = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
   g.addColorStop(0, 'rgba(255,255,255,1)');
   g.addColorStop(0.25, 'rgba(255,255,255,0.55)');

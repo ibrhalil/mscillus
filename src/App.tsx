@@ -12,6 +12,8 @@ import { toView, useSettings } from './store/settings';
 import { SourcePicker } from './ui/SourcePicker';
 import { ModeSwitcher } from './ui/ModeSwitcher';
 import { AutoCycleIcon, ExitFullscreenIcon, FullscreenIcon, SettingsIcon } from './ui/icons';
+import { phrase, t } from './i18n';
+import { useLocale } from './i18n/react';
 import { SettingsPanel } from './ui/SettingsPanel';
 import type { PanelTab } from './ui/SettingsPanel';
 import { Toast } from './ui/Toast';
@@ -29,14 +31,13 @@ type ModeChange = 'ui' | 'key' | 'auto';
 
 function friendlyError(e: unknown): string {
   if (e instanceof DOMException) {
-    if (e.name === 'NotAllowedError')
-      return 'İzin verilmedi. Paylaşım penceresinde ses paylaşımını işaretlediğinizden emin olun.';
-    if (e.name === 'NotFoundError') return 'Ses aygıtı bulunamadı.';
-    if (e.name === 'AbortError') return 'Paylaşım penceresi kapatıldı, işlem iptal edildi.';
-    if (e.name === 'NotSupportedError') return 'Bu dosya biçimi tarayıcıda çalınamıyor.';
+    if (e.name === 'NotAllowedError') return t('error.permission');
+    if (e.name === 'NotFoundError') return t('error.notFound');
+    if (e.name === 'AbortError') return t('error.aborted');
+    if (e.name === 'NotSupportedError') return t('error.notSupported');
   }
   if (e instanceof Error && e.message) return e.message;
-  return 'Beklenmeyen bir hata oluştu.';
+  return t('error.unknown');
 }
 
 /** Sekme oturumunda son kullanılan mod (yenilemeden sonra aynı modla açılır). */
@@ -46,6 +47,7 @@ function initialMode(): ModeId {
 }
 
 export default function App() {
+  useLocale();
   const { settings, update } = useSettings();
   const [source, setSource] = useState<SourceType | null>(null);
   const [modeId, setModeId] = useState<ModeId>(initialMode);
@@ -98,7 +100,7 @@ export default function App() {
   const handleModeError = (id: ModeId, err: unknown) => {
     if (isReloading() || (isChunkLoadError(err) && reloadOnce())) return;
     console.error(err);
-    showToast(`"${modeMeta(id).name}" modu açılamadı: ${friendlyError(err)}`, 'error');
+    showToast(t('toast.modeFailed', { name: phrase(modeMeta(id).name), error: friendlyError(err) }), 'error');
   };
 
   const advanceAuto = () => {
@@ -145,9 +147,9 @@ export default function App() {
       onFrame,
       onModeError: (id, err) => {
         console.error(err);
-        showToast(`"${modeMeta(id).name}" modu bir hata nedeniyle durduruldu.`, 'error');
+        showToast(t('toast.modeStopped', { name: phrase(modeMeta(id).name) }), 'error');
       },
-      onContextLost: () => showToast('Grafik bağlamı kayboldu; yeniden kuruluyor…', 'error'),
+      onContextLost: () => showToast(t('toast.contextLost'), 'error'),
     });
     loopRef.current = loop;
     const id = modeRef.current;
@@ -169,7 +171,7 @@ export default function App() {
     if (!engineRef.current) engineRef.current = new AudioEngine();
     const engine = engineRef.current;
     engine.onEnded = () => handleChangeSource();
-    engine.onTrackError = (name) => showToast(`Çalınamadı: ${trackTitle(name)} — sıradakine geçildi.`, 'error');
+    engine.onTrackError = (name) => showToast(t('toast.trackFailed', { title: trackTitle(name) }), 'error');
     try {
       if (type === 'file') {
         if (!files?.length) return;
@@ -205,11 +207,11 @@ export default function App() {
     const on = !settings.autoCycle;
     update({ autoCycle: on });
     if (!on) {
-      showToast('Otomatik mod geçişi kapalı');
+      showToast(t('toast.autoOff'));
       return;
     }
     const favs = settings.autoCycleScope === 'favorites' && settings.favorites.length >= 2;
-    showToast(`Otomatik mod geçişi açık · ${favs ? 'favoriler' : 'tüm modlar'}, ${settings.autoCycleSec} sn`);
+    showToast(t(favs ? 'toast.autoOnFavorites' : 'toast.autoOnAll', { sec: settings.autoCycleSec }));
   };
 
   const toggleFullscreen = () => {
@@ -227,14 +229,16 @@ export default function App() {
     e.preventDefault();
     const files = audioFiles(e.dataTransfer.files);
     if (files.length === 0) {
-      showToast('Bırakılanlar arasında ses dosyası yok.', 'error');
+      showToast(t('toast.noAudioDropped'), 'error');
       return;
     }
     const engine = engineRef.current;
     if (source === 'file' && engine) {
       engine.addFiles(files);
       showToast(
-        files.length === 1 ? `Listeye eklendi: ${trackTitle(files[0].name)}` : `${files.length} parça listeye eklendi`,
+        files.length === 1
+          ? t('toast.addedOne', { title: trackTitle(files[0].name) })
+          : t('toast.addedMany', { n: files.length }),
       );
     } else {
       void handlePick('file', files);
@@ -254,7 +258,7 @@ export default function App() {
     cycleTimer.current.reset();
     loopRef.current?.setMode(modeId).catch((err: unknown) => handleModeError(modeId, err));
     if (changeRef.current !== 'ui' && sourceRef.current !== null && settingsRef.current.modeToast) {
-      showToast(modeMeta(modeId).name);
+      showToast(phrase(modeMeta(modeId).name));
     }
     changeRef.current = 'ui';
   }, [modeId]);
@@ -356,7 +360,7 @@ export default function App() {
   useEffect(
     () => () => {
       window.clearTimeout(toastTimer.current);
-      fadeTimers.current.forEach((t) => window.clearTimeout(t));
+      fadeTimers.current.forEach((id) => window.clearTimeout(id));
       loopRef.current?.dispose();
       loopRef.current = null;
       engineRef.current?.dispose();
@@ -391,15 +395,15 @@ export default function App() {
                 />
                 <div className="topbar__actions">
                   {settings.showFps && (
-                    <span className="fps" title={fps.scale < 1 ? 'Çizim çözünürlüğü (otomatik / performans ayarı)' : undefined}>
-                      {fps.fps} FPS{fps.scale < 1 && ` · %${Math.round(fps.scale * 100)}`}
+                    <span className="fps" title={fps.scale < 1 ? t('topbar.fpsScale') : undefined}>
+                      {fps.fps} FPS{fps.scale < 1 && ` · ${t('fps.scale', { pct: Math.round(fps.scale * 100) })}`}
                     </span>
                   )}
                   <button
                     type="button"
                     className={`btn btn--ghost btn--icon ${settings.autoCycle ? 'btn--active' : ''}`}
-                    title={settings.autoCycle ? 'Otomatik mod geçişi: açık' : 'Otomatik mod geçişi: kapalı'}
-                    aria-label="Otomatik mod geçişi"
+                    title={settings.autoCycle ? t('topbar.autoCycleOn') : t('topbar.autoCycleOff')}
+                    aria-label={t('topbar.autoCycle')}
                     aria-pressed={settings.autoCycle}
                     onClick={toggleAutoCycle}
                   >
@@ -408,8 +412,8 @@ export default function App() {
                   <button
                     type="button"
                     className={`btn btn--ghost btn--icon ${panelOpen ? 'btn--active' : ''}`}
-                    title="Ayarlar (S)"
-                    aria-label="Ayarlar"
+                    title={`${t('topbar.settings')} (S)`}
+                    aria-label={t('topbar.settings')}
                     aria-pressed={panelOpen}
                     onClick={() => setPanelOpen((v) => !v)}
                   >
@@ -418,8 +422,8 @@ export default function App() {
                   <button
                     type="button"
                     className="btn btn--ghost btn--icon"
-                    title={isFullscreen ? 'Tam ekrandan çık (F)' : 'Tam ekran (F)'}
-                    aria-label={isFullscreen ? 'Tam ekrandan çık' : 'Tam ekran'}
+                    title={`${isFullscreen ? t('topbar.exitFullscreen') : t('topbar.fullscreen')} (F)`}
+                    aria-label={isFullscreen ? t('topbar.exitFullscreen') : t('topbar.fullscreen')}
                     onClick={toggleFullscreen}
                   >
                     {isFullscreen ? <ExitFullscreenIcon /> : <FullscreenIcon />}
@@ -441,7 +445,7 @@ export default function App() {
                 />}
             </>
           )}
-          {uiHidden && <div className="ui-hint">Arayüzü göstermek için H tuşuna basın</div>}
+          {uiHidden && <div className="ui-hint">{t('topbar.showHint')}</div>}
         </>
       )}
       <Toast toast={toast} />

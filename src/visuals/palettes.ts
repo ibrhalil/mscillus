@@ -9,25 +9,25 @@ export const PALETTES: Record<string, Palette> = {
   },
   sunset: {
     id: 'sunset',
-    name: 'Gün Batımı',
+    name: 'Sunset',
     colors: ['#fee440', '#ff9e00', '#f15bb5', '#9e0059'],
     bg: '#120409',
   },
   ocean: {
     id: 'ocean',
-    name: 'Okyanus',
+    name: 'Ocean',
     colors: ['#caf0f8', '#90e0ef', '#00b4d8', '#0077b6', '#023e8a'],
     bg: '#02080f',
   },
   rainbow: {
     id: 'rainbow',
-    name: 'Gökkuşağı',
+    name: 'Rainbow',
     colors: ['#ff0040', '#ff8a00', '#ffee00', '#00d26a', '#00b4d8', '#9b5de5'],
     bg: '#050608',
   },
   mono: {
     id: 'mono',
-    name: 'Monokrom',
+    name: 'Monochrome',
     colors: ['#ffffff', '#c8d6e5', '#8395a7', '#576574'],
     bg: '#050505',
   },
@@ -39,19 +39,19 @@ export const PALETTES: Record<string, Palette> = {
   },
   cyberpunk: {
     id: 'cyberpunk',
-    name: 'Siberpunk',
+    name: 'Cyberpunk',
     colors: ['#fcee0a', '#ff003c', '#d300c5', '#00f0ff'],
     bg: '#07040e',
   },
   forest: {
     id: 'forest',
-    name: 'Orman',
+    name: 'Forest',
     colors: ['#d8f3dc', '#95d5b2', '#52b788', '#2d6a4f', '#1b4332'],
     bg: '#020a06',
   },
   ember: {
     id: 'ember',
-    name: 'Kor',
+    name: 'Ember',
     colors: ['#fff3b0', '#ffb703', '#fb8500', '#d62828', '#6a040f'],
     bg: '#0a0302',
   },
@@ -90,7 +90,7 @@ export function resolvePalette(paletteId: string, custom: CustomPalette): Palett
   if (paletteId !== CUSTOM_PALETTE_ID) return PALETTES[paletteId] ?? PALETTES.neon;
   let p = customPalettes.get(custom);
   if (!p) {
-    p = { id: `custom:${custom.colors.join(',')}/${custom.bg}`, name: 'Özel', colors: custom.colors, bg: custom.bg };
+    p = { id: `custom:${custom.colors.join(',')}/${custom.bg}`, name: 'Custom', colors: custom.colors, bg: custom.bg };
     customPalettes.set(custom, p);
   }
   return p;

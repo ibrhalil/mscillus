@@ -1,6 +1,9 @@
+import { phrase } from '../i18n';
+
 /** Bir modun ayar panelinde gösterilen tek bir kontrol (kaydırıcı veya anahtar). */
 export interface OptionDef {
   id: string;
+  /** İngilizce kaynak metin; gösterirken `phrase()` ile çevrilir. */
   label: string;
   kind: 'slider' | 'toggle' | 'select';
   min: number;
@@ -8,7 +11,7 @@ export interface OptionDef {
   step: number;
   default: number;
   format?: 'int' | 'x' | 'pct';
-  /** `select` için seçenek etiketleri; saklanan değer dizin numarasıdır. */
+  /** `select` için seçenek etiketleri (İngilizce kaynak metin); saklanan değer dizin numarasıdır. */
   choices?: readonly string[];
   /** `select` için: açılır liste yerine yan yana segmentli düğme grubu gösterir. */
   segmented?: boolean;
@@ -62,13 +65,13 @@ export { slider };
 
 /** Birden çok modun paylaştığı seçenekler; her mod yalnızca kullandıklarını gösterir. */
 export const SHARED_OPTIONS = {
-  barCount: slider('barCount', 'Bar / Öğe Sayısı', 16, 128, 8, 64, 'int'),
-  particleCount: slider('particleCount', 'Parçacık Yoğunluğu', 50, 800, 10, 300, 'int'),
-  rotationSpeed: slider('rotationSpeed', 'Rotasyon Hızı', 0, 1, 0.05, 0.15),
+  barCount: slider('barCount', 'Bar / Item Count', 16, 128, 8, 64, 'int'),
+  particleCount: slider('particleCount', 'Particle Density', 50, 800, 10, 300, 'int'),
+  rotationSpeed: slider('rotationSpeed', 'Rotation Speed', 0, 1, 0.05, 0.15),
   // 0 kapalı; 1-3 düşük/orta/yüksek kalite (bkz. toView: glow = değer > 0, glowQuality = değer - 1)
-  glow: select('glow', 'Parlama (Glow)', ['Kapalı', 'Düşük', 'Orta', 'Yüksek'], 3, { segmented: true }),
-  trail: slider('trail', 'İz Uzunluğu', 0.3, 3, 0.1, 1, 'x'),
-  speed: slider('speed', 'Animasyon Hızı', 0.25, 2.5, 0.05, 1, 'x'),
+  glow: select('glow', 'Glow', ['Off', 'Low', 'Medium', 'High'], 3, { segmented: true }),
+  trail: slider('trail', 'Trail Length', 0.3, 3, 0.1, 1, 'x'),
+  speed: slider('speed', 'Animation Speed', 0.25, 2.5, 0.05, 1, 'x'),
 } as const;
 
 export type SharedOptionKey = keyof typeof SHARED_OPTIONS;
@@ -80,7 +83,7 @@ export function clampOption(def: OptionDef, value: unknown): number {
 }
 
 export function formatOption(def: OptionDef, v: number): string {
-  if (def.choices) return def.choices[Math.round(v)] ?? '';
+  if (def.choices) return phrase(def.choices[Math.round(v)] ?? '');
   if (def.format === 'int') return `${Math.round(v)}`;
   if (def.format === 'x') return `${v.toFixed(2)}x`;
   if (def.format === 'pct') return `${Math.round(v * 100)}%`;

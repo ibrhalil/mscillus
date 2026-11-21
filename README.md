@@ -1,8 +1,17 @@
 # Mscillus — Music Visualizer
 
 A web app that captures the music playing on your computer in real time and visualizes it from the beat and
-frequency data. 38 visual modes, 4 audio sources, in-browser customization, automatic mode switching and a playlist
+frequency data. 39 visual modes, 4 audio sources, in-browser customization, automatic mode switching and a playlist
 for local files. The interface is available in **English** and **Turkish** (it opens in your browser's language).
+
+![Spectrum Bars](docs/images/mode-spectrum-bars.jpg)
+
+| | | |
+|:---:|:---:|:---:|
+| ![Neon Clock](docs/images/mode-neon-clock.jpg) | ![Fire](docs/images/mode-fire.jpg) | ![Radial](docs/images/mode-radial.jpg) |
+| Neon Clock | Fire | Radial |
+| ![Plenoptic (XP)](docs/images/mode-plenoptic.jpg) | ![Paint Drip](docs/images/mode-paint-drip.jpg) | ![Phosphene](docs/images/mode-phosphene.jpg) |
+| Plenoptic (XP) | Paint Drip | Phosphene |
 
 ## Getting started
 
@@ -35,7 +44,7 @@ shortcut key (`⇧` = Shift), and your first 10 favorites also get `1`–`9` and
 - **Space & 3D:** `T` 3D Tunnel · `O` Plenoptic (XP) · `I` Light Speed · `W` Wormhole · `Y` Galaxy · `N` Space Voyage
 - **Nature:** `E` Fire · `U` Water Ripples · `Q` Bubbles · `R` Snow · `⇧Y` Rain · `⇧L` Lightning
 - **Light & Particles:** `⇧P` Particles · `L` Ribbons · `B` Laser · `C` Fireworks
-- **Retro & Stage:** `X` Matrix · `⇧U` Static · `⇧X` Audio Pong
+- **Retro & Stage:** `X` Matrix · `⇧U` Static · `⇧X` Audio Pong · `⇧C` Neon Clock
 
 ## Keyboard shortcuts
 
@@ -82,5 +91,6 @@ work. If it doesn't:
 - `src/store/` — settings (Context + `localStorage`)
 - `src/i18n/` — translations (`en.ts` is the source; add a language by adding a catalog and a `LOCALES` entry)
 - `src/ui/` — React components
+- `docs/images/` — README screenshots (not part of the app bundle)
 
 More detail and the decision log: [PLAN.md](./PLAN.md) (in Turkish).

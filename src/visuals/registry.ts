@@ -398,6 +398,17 @@ const DEFS = [
       toggle('burst', 'New Streams on Beat', true),
     ],
   }),
+  canvas2d('clock', 'Neon Clock', 'C', 'retro', () => import('./NeonClock').then((m) => m.NeonClock), {
+    uses: ['glow'],
+    options: [
+      select('format', 'Time Format', ['24 Hours', '12 Hours'], 0, { segmented: true }),
+      toggle('seconds', 'Show Seconds', true),
+      select('colorMode', 'Digit Colors', ['Each digit different', 'Flowing palette', 'Single color']),
+      select('glowStyle', 'Digit Glow', ['Each digit different', 'Breathing', 'Beat pulse', 'Flickering tube', 'Frequency bands']),
+      slider('react', 'Music Reactivity', 0, 2.5, 0.05, 1.2, 'x'),
+      slider('size', 'Size', 0.5, 1.2, 0.05, 1, 'x'),
+    ],
+  }),
   canvas2d('laser', 'Laser', 'b', 'light', () => import('./Laser').then((m) => m.Laser), {
     uses: ['glow', 'trail'],
     options: [

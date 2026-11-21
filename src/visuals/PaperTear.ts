@@ -255,10 +255,10 @@ export class PaperTear implements Visualizer {
     if (top.main) {
       const m = top.main;
       if (m.tau < 1) {
-        m.tau = Math.min(1, m.tau + dt * (0.06 + 0.05 * this.sLevel + 0.3 * this.jerk) * o.speed);
+        m.tau = Math.min(1, m.tau + dt * (0.06 + 0.05 * this.sLevel + 0.3 * this.jerk) * o.tearSpeed);
         m.w = 0.004 + 0.045 * m.tau;
       } else {
-        m.open += dt * o.speed * (1 + 1.2 * this.jerk);
+        m.open += dt * o.tearSpeed * (1 + 1.2 * this.jerk);
         m.w = 0.049 + 0.25 * m.open * m.open;
         if (m.w * 0.3 > R0 + 0.3) {
           this.layers.shift();

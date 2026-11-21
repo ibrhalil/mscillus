@@ -330,7 +330,7 @@ export class Voyage implements Visualizer {
     const exposure = streak * 0.055;
 
     // Parlaklık ve renk tonu spektrumla: bas kırmızıya, orta yeşile, tiz maviye doğru kaydırır
-    const gain = 0.45 + this.sTreble * 1.0 + this.sMid * 0.3;
+    const gain = 0.45 + this.sTreble + this.sMid * 0.3;
     const tr = 1 + this.sBass * 0.6;
     const tg = 1 + this.sMid * 0.5;
     const tb = 1 + this.sTreble * 0.7;

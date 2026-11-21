@@ -1,10 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
-import type { AudioEngine } from '../audio/AudioEngine';
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import type { ChangeEvent } from 'react';
+import type { AudioEngine, TrackState } from '../audio/AudioEngine';
+import { audioFiles, trackTitle } from '../audio/files';
+import { ListIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, RepeatIcon, ShuffleIcon, VolumeIcon } from './icons';
 
 interface Props {
   engine: AudioEngine;
-  fileName: string;
 }
+
+const REPEAT_LABEL = {
+  off: 'Tekrar: kapalı',
+  all: 'Tekrar: tüm liste',
+  one: 'Tekrar: bu parça',
+} as const;
 
 function fmtTime(t: number): string {
   if (!Number.isFinite(t)) return '0:00';
@@ -13,12 +21,15 @@ function fmtTime(t: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export function TransportControls({ engine, fileName }: Props) {
+export function TransportControls({ engine }: Props) {
+  const tracks = useSyncExternalStore(engine.subscribeTracks, engine.getTrackState);
   const [playing, setPlaying] = useState(false);
   const [pos, setPos] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState(engine.volume);
+  const [listOpen, setListOpen] = useState(false);
   const dragRef = useRef(false);
+  const unmutedVolume = useRef(engine.volume || 1);
 
   useEffect(() => {
     const el = engine.audioElement;
@@ -26,8 +37,7 @@ export function TransportControls({ engine, fileName }: Props) {
     const sync = () => {
       setPlaying(!el.paused);
       if (!dragRef.current) setPos(el.currentTime);
-      if (Number.isFinite(el.duration)) setDuration(el.duration);
-      setVolume(el.volume);
+      setDuration(Number.isFinite(el.duration) ? el.duration : 0);
     };
     sync();
     const events: (keyof HTMLMediaElementEventMap)[] = [
@@ -35,8 +45,9 @@ export function TransportControls({ engine, fileName }: Props) {
       'play',
       'pause',
       'ended',
-      'volumechange',
       'loadedmetadata',
+      'durationchange',
+      'emptied',
     ];
     events.forEach((ev) => el.addEventListener(ev, sync));
     return () => events.forEach((ev) => el.removeEventListener(ev, sync));
@@ -49,16 +60,34 @@ export function TransportControls({ engine, fileName }: Props) {
   };
 
   const changeVolume = (v: number) => {
-    const el = engine.audioElement;
-    if (el) el.volume = v;
+    engine.setVolume(v);
     setVolume(v);
+    if (v > 0) unmutedVolume.current = v;
   };
+
+  const name = tracks.names[tracks.index] ?? '';
+  const multi = tracks.names.length > 1;
 
   return (
     <div className="transport">
-      <button type="button" className="btn btn--primary" onClick={() => engine.togglePlay()}>
-        {playing ? 'Duraklat' : 'Oynat'}
-      </button>
+      <div className="transport__group">
+        <button type="button" className="btn btn--ghost btn--icon" title="Önceki parça (⇧←)" aria-label="Önceki parça" onClick={() => void engine.prevTrack()}>
+          <PrevIcon />
+        </button>
+        <button
+          type="button"
+          className="btn btn--primary btn--icon transport__play"
+          title={playing ? 'Duraklat (Space)' : 'Oynat (Space)'}
+          aria-label={playing ? 'Duraklat' : 'Oynat'}
+          onClick={() => engine.togglePlay()}
+        >
+          {playing ? <PauseIcon /> : <PlayIcon />}
+        </button>
+        <button type="button" className="btn btn--ghost btn--icon" title="Sonraki parça (⇧→)" aria-label="Sonraki parça" onClick={() => void engine.nextTrack()}>
+          <NextIcon />
+        </button>
+      </div>
+
       <span className="transport__time">{fmtTime(pos)}</span>
       <input
         className="transport__seek"
@@ -67,6 +96,7 @@ export function TransportControls({ engine, fileName }: Props) {
         max={Math.max(0.1, duration)}
         step={0.1}
         value={pos}
+        aria-label="Konum"
         onPointerDown={() => {
           dragRef.current = true;
         }}
@@ -76,20 +106,139 @@ export function TransportControls({ engine, fileName }: Props) {
         onChange={(e) => seek(Number(e.target.value))}
       />
       <span className="transport__time">{fmtTime(duration)}</span>
-      <span className="transport__file" title={fileName}>
-        {fileName}
+
+      <span className="transport__file" title={name}>
+        {trackTitle(name)}
+        {multi && (
+          <span className="transport__count">
+            {tracks.index + 1}/{tracks.names.length}
+          </span>
+        )}
       </span>
-      <label className="transport__vol">
-        Ses
+
+      <div className="transport__group">
+        <button
+          type="button"
+          className={`btn btn--ghost btn--icon ${tracks.repeat !== 'off' ? 'btn--active' : ''}`}
+          title={REPEAT_LABEL[tracks.repeat]}
+          aria-label={REPEAT_LABEL[tracks.repeat]}
+          onClick={() => engine.cycleRepeat()}
+        >
+          <RepeatIcon one={tracks.repeat === 'one'} />
+        </button>
+        <button
+          type="button"
+          className={`btn btn--ghost btn--icon ${tracks.shuffle ? 'btn--active' : ''}`}
+          title={tracks.shuffle ? 'Karıştırma: açık' : 'Karıştırma: kapalı'}
+          aria-label="Karıştır"
+          aria-pressed={tracks.shuffle}
+          onClick={() => engine.toggleShuffle()}
+        >
+          <ShuffleIcon />
+        </button>
+        <PlaylistButton engine={engine} tracks={tracks} open={listOpen} onOpenChange={setListOpen} />
+      </div>
+
+      <div className="transport__vol">
+        <button
+          type="button"
+          className="btn btn--ghost btn--icon"
+          title={volume > 0 ? 'Sesi kapat' : 'Sesi aç'}
+          aria-label={volume > 0 ? 'Sesi kapat' : 'Sesi aç'}
+          onClick={() => changeVolume(volume > 0 ? 0 : unmutedVolume.current)}
+        >
+          <VolumeIcon muted={volume === 0} />
+        </button>
         <input
           type="range"
           min={0}
           max={1}
           step={0.01}
           value={volume}
+          aria-label="Ses seviyesi"
           onChange={(e) => changeVolume(Number(e.target.value))}
         />
-      </label>
+      </div>
+    </div>
+  );
+}
+
+function PlaylistButton({
+  engine,
+  tracks,
+  open,
+  onOpenChange,
+}: {
+  engine: AudioEngine;
+  tracks: TrackState;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onOpenChange(false);
+    };
+    window.addEventListener('pointerdown', onDown);
+    return () => window.removeEventListener('pointerdown', onDown);
+  }, [open, onOpenChange]);
+
+  const onFiles = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files ? audioFiles(e.target.files) : [];
+    if (files.length > 0) engine.addFiles(files);
+    e.target.value = '';
+  };
+
+  return (
+    <div className="transport__list" ref={ref}>
+      <button
+        type="button"
+        className={`btn btn--ghost btn--icon ${open ? 'btn--active' : ''}`}
+        title="Çalma listesi"
+        aria-label="Çalma listesi"
+        aria-expanded={open}
+        onClick={() => onOpenChange(!open)}
+      >
+        <ListIcon />
+      </button>
+      {open && (
+        <div className="playlist" role="dialog" aria-label="Çalma listesi">
+          <div className="playlist__head">
+            <span>Çalma Listesi ({tracks.names.length})</span>
+            <button type="button" className="btn btn--ghost" onClick={() => inputRef.current?.click()}>
+              + Dosya ekle
+            </button>
+            <input ref={inputRef} type="file" accept="audio/*" multiple hidden onChange={onFiles} />
+          </div>
+          <ol className="playlist__items">
+            {tracks.names.map((n, i) => (
+              <li key={`${i}:${n}`} className={`playlist__item ${i === tracks.index ? 'playlist__item--on' : ''}`}>
+                <button type="button" className="playlist__play" onClick={() => void engine.playTrack(i)}>
+                  <span className="playlist__no">{i === tracks.index ? '▶' : i + 1}</span>
+                  <span className="playlist__name" title={n}>
+                    {trackTitle(n)}
+                  </span>
+                </button>
+                {i !== tracks.index && (
+                  <button
+                    type="button"
+                    className="playlist__remove"
+                    title="Listeden çıkar"
+                    aria-label={`${trackTitle(n)} parçasını listeden çıkar`}
+                    onClick={() => engine.removeTrack(i)}
+                  >
+                    ×
+                  </button>
+                )}
+              </li>
+            ))}
+          </ol>
+          <p className="playlist__hint">Dosyaları ekrana sürükleyip bırakarak da ekleyebilirsiniz.</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -230,8 +230,8 @@ export class Phosphene implements Visualizer {
     this.sBeat += (frame.beatPulse - this.sBeat) * damp(dt, 5);
 
     // Dönüş ve yakınlaşma seviyeyle yavaşça birikir (ritim yönü/şekli bozmaz)
-    this.rot += dt * (0.05 + this.sLevel * 0.2) * o.speed;
-    this.zoom += dt * (0.05 + this.sLevel * 0.12) * o.speed;
+    this.rot += dt * (0.05 + this.sLevel * 0.2) * o.flow;
+    this.zoom += dt * (0.05 + this.sLevel * 0.12) * o.flow;
     this.hue += dt * (0.004 + this.sLevel * 0.02);
 
     // Desen geçişi: her `rhythm` vuruşta ya da 14 sn'de bir (hedef +1; morph yumuşakça kayar → çapraz geçiş)

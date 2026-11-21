@@ -445,7 +445,7 @@ const DEFS = [
       slider('tight', 'Sıkılık', 0.3, 2, 0.05, 0.8, 'x'),
       slider('depth', 'Derinlik (merkeze incelme)', 0, 1, 0.05, 0.4, 'x'),
       slider('thick', 'Kalınlık', 0.5, 1.5, 0.05, 1, 'x'),
-      slider('speed', 'Dönüş Hızı', 0.2, 3, 0.05, 1, 'x'),
+      slider('spin', 'Dönüş Hızı', 0.2, 3, 0.05, 1, 'x'),
       select('direction', 'Yön', ['İçe Doğru', 'Dışa Doğru'], 0, { segmented: true }),
       slider('react', 'Müzik Tepkisi', 0, 2, 0.05, 1, 'x'),
       slider('bright', 'Parlaklık', 0.4, 1.8, 0.05, 1, 'x'),
@@ -548,7 +548,7 @@ const DEFS = [
     options: [
       slider('sym', 'Simetri (katlama sayısı)', 4, 16, 2, 8, 'int'),
       slider('rhythm', 'Desen Geçişi (kaç vuruşta bir)', 4, 48, 1, 16, 'int'),
-      slider('speed', 'Dönüş / Akış Hızı', 0.2, 3, 0.05, 1, 'x'),
+      slider('flow', 'Dönüş / Akış Hızı', 0.2, 3, 0.05, 1, 'x'),
       slider('width', 'Çizgi Kalınlığı', 0.4, 2.5, 0.05, 1, 'x'),
       slider('halo', 'Işıma (Hale)', 0, 2, 0.05, 1, 'x'),
       slider('react', 'Müzik Tepkisi', 0, 2.5, 0.05, 1.2, 'x'),
@@ -558,7 +558,7 @@ const DEFS = [
   webgl('papertear', 'Kağıt Yırtma', 'J', 'psychedelic', () => import('./PaperTear').then((m) => m.PaperTear), {
     options: [
       select('colors', 'Kağıt Renkleri', ['Palet', 'Kağıt Tonları'], 0, { segmented: true }),
-      slider('speed', 'Yırtılma Hızı', 0.3, 3, 0.05, 1, 'x'),
+      slider('tearSpeed', 'Yırtılma Hızı', 0.3, 3, 0.05, 1, 'x'),
       select('direction', 'Yırtılma Yönü', ['Rastgele', 'Yatay', 'Dikey'], 0, { segmented: true }),
       slider('jag', 'Tırtıklılık', 0.3, 2, 0.05, 1, 'x'),
       slider('fiber', 'Kağıt Lifi (beyaz kenar)', 0, 2, 0.05, 1, 'x'),

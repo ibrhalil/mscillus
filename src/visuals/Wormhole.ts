@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { binAt, binAtLerp, sampleGradient } from './palettes';
 import type { Visualizer, VisualizerSettingsView } from './types';
 import type { AudioFrame } from '../audio/types';
-import { TAU, damp } from './util';
+import { TAU, damp, pixelRatio } from './util';
 
 const LOOP_POINTS = 240;
 const TUBE_RADIUS = 3.6;
@@ -327,7 +327,7 @@ export class Wormhole implements Visualizer {
 
   /** "Çözünürlük" ayarı: çizim tamponunu küçültür (ekrana bilinear büyür). */
   private applyQuality(level: number): void {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = pixelRatio();
     const ratio = level >= 2 ? dpr : Math.min(dpr, QUALITY_SCALE[level]);
     if (ratio === this.appliedRatio) return;
     this.appliedRatio = ratio;
@@ -419,7 +419,7 @@ export class Wormhole implements Visualizer {
     u.uBlur.value = o.horizonBlur;
     u.uSpiral.value = o.spiral;
     // Işık ritimle belirginleşir: sessizlikte loş, seviye ve vuruşla yükselir (hızlı-yumuşak, vuruşta parlayıp söner)
-    const lightTarget = Math.min(2, 0.3 + this.sLevel * 2.4 + this.sBeat * 1.0);
+    const lightTarget = Math.min(2, 0.3 + this.sLevel * 2.4 + this.sBeat);
     this.lightS += (lightTarget - this.lightS) * damp(frame.dt, 8);
     u.uLight.value = this.lightS;
     u.uStreak.value = o.streak;
@@ -451,7 +451,7 @@ export class Wormhole implements Visualizer {
 
   dispose(): void {
     // Diğer modlar için piksel oranını RenderLoop'un varsayılanına döndür
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = pixelRatio();
     const el = this.gl.domElement;
     this.gl.setPixelRatio(dpr);
     this.gl.setSize(el.clientWidth || 1, el.clientHeight || 1, false);

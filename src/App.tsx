@@ -1,15 +1,31 @@
 import { useEffect, useRef, useState } from 'react';
+import type { DragEvent } from 'react';
 import { AudioEngine } from './audio/AudioEngine';
-import type { SourceType } from './audio/types';
+import { audioFiles, trackTitle } from './audio/files';
+import type { AudioFrame, SourceType } from './audio/types';
+import { isChunkLoadError, isReloading, rememberedMode, rememberMode, reloadOnce } from './chunkReload';
+import { AutoCycleTimer, cyclePool, ModeShuffler } from './render/AutoCycle';
 import { RenderLoop } from './render/RenderLoop';
-import { adjacentMode, favoriteForKey, MODES } from './visuals/registry';
+import { adjacentMode, favoriteForKey, MODES, modeMeta } from './visuals/registry';
 import type { ModeId } from './visuals/registry';
 import { toView, useSettings } from './store/settings';
 import { SourcePicker } from './ui/SourcePicker';
 import { ModeSwitcher } from './ui/ModeSwitcher';
-import { ExitFullscreenIcon, FullscreenIcon, SettingsIcon } from './ui/icons';
+import { AutoCycleIcon, ExitFullscreenIcon, FullscreenIcon, SettingsIcon } from './ui/icons';
 import { SettingsPanel } from './ui/SettingsPanel';
+import type { PanelTab } from './ui/SettingsPanel';
+import { Toast } from './ui/Toast';
+import type { ToastMessage } from './ui/Toast';
 import { TransportControls } from './ui/TransportControls';
+import { useWakeLock } from './ui/useWakeLock';
+
+const INFO_TOAST_MS = 1600;
+const ERROR_TOAST_MS = 5000;
+/** Otomatik geçişte karartmanın sürmesi (ms); mod bu sürenin sonunda, ekran karanlıkken değişir. */
+const FADE_MS = 260;
+
+/** Mod değişikliğinin kaynağı: mod çubuğundan tıklanan değişiklik için ad bildirimi gösterilmez (zaten görünüyor). */
+type ModeChange = 'ui' | 'key' | 'auto';
 
 function friendlyError(e: unknown): string {
   if (e instanceof DOMException) {
@@ -17,23 +33,32 @@ function friendlyError(e: unknown): string {
       return 'İzin verilmedi. Paylaşım penceresinde ses paylaşımını işaretlediğinizden emin olun.';
     if (e.name === 'NotFoundError') return 'Ses aygıtı bulunamadı.';
     if (e.name === 'AbortError') return 'Paylaşım penceresi kapatıldı, işlem iptal edildi.';
+    if (e.name === 'NotSupportedError') return 'Bu dosya biçimi tarayıcıda çalınamıyor.';
   }
   if (e instanceof Error && e.message) return e.message;
   return 'Beklenmeyen bir hata oluştu.';
 }
 
+/** Sekme oturumunda son kullanılan mod (yenilemeden sonra aynı modla açılır). */
+function initialMode(): ModeId {
+  const id = rememberedMode();
+  return MODES.find((m) => m.id === id)?.id ?? 'bars';
+}
+
 export default function App() {
-  const { settings } = useSettings();
+  const { settings, update } = useSettings();
   const [source, setSource] = useState<SourceType | null>(null);
-  const [fileName, setFileName] = useState('');
-  const [modeId, setModeId] = useState<ModeId>('bars');
+  const [modeId, setModeId] = useState<ModeId>(initialMode);
   const [error, setError] = useState<string | null>(null);
   const [panelOpen, setPanelOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState<PanelTab>('mode');
   const [pickerOpen, setPickerOpen] = useState(false);
   const [uiHidden, setUiHidden] = useState(false);
   const [idle, setIdle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [fps, setFps] = useState(0);
+  const [fps, setFps] = useState({ fps: 0, scale: 1 });
+  const [toast, setToast] = useState<ToastMessage | null>(null);
+  const [fading, setFading] = useState(false);
 
   const engineRef = useRef<AudioEngine | null>(null);
   const loopRef = useRef<RenderLoop | null>(null);
@@ -43,6 +68,62 @@ export default function App() {
   settingsRef.current = settings;
   const modeRef = useRef(modeId);
   modeRef.current = modeId;
+  const sourceRef = useRef(source);
+  sourceRef.current = source;
+  // Panel / mod seçici açıkken veya geçiş sürerken otomatik geçiş bekler.
+  const cyclePausedRef = useRef(false);
+  cyclePausedRef.current = panelOpen || pickerOpen || fading;
+  const changeRef = useRef<ModeChange>('ui');
+  const cycleTimer = useRef(new AutoCycleTimer());
+  const shuffler = useRef(new ModeShuffler());
+  const toastTimer = useRef(0);
+  const toastSeq = useRef(0);
+  const fadeTimers = useRef<number[]>([]);
+
+  useWakeLock(source !== null);
+
+  const showToast = (text: string, kind: ToastMessage['kind'] = 'info') => {
+    const duration = kind === 'error' ? ERROR_TOAST_MS : INFO_TOAST_MS;
+    window.clearTimeout(toastTimer.current);
+    setToast({ id: ++toastSeq.current, text, kind, duration });
+    toastTimer.current = window.setTimeout(() => setToast(null), duration);
+  };
+
+  const selectMode = (next: ModeId | ((cur: ModeId) => ModeId), how: ModeChange) => {
+    changeRef.current = how;
+    setModeId(next);
+  };
+
+  /** Mod parçası yüklenemedi / mod kurulamadı. Yeni sürüm yayınlandıysa sayfa bir kez yenilenir. */
+  const handleModeError = (id: ModeId, err: unknown) => {
+    if (isReloading() || (isChunkLoadError(err) && reloadOnce())) return;
+    console.error(err);
+    showToast(`"${modeMeta(id).name}" modu açılamadı: ${friendlyError(err)}`, 'error');
+  };
+
+  const advanceAuto = () => {
+    const s = settingsRef.current;
+    const pool = cyclePool(s.autoCycleScope, s.favorites);
+    const next = shuffler.current.next(modeRef.current, pool, s.autoCycleShuffle);
+    if (next === modeRef.current) return;
+    setFading(true);
+    fadeTimers.current.push(
+      window.setTimeout(() => {
+        selectMode(next, 'auto');
+        fadeTimers.current.push(window.setTimeout(() => setFading(false), FADE_MS + 60));
+      }, FADE_MS),
+    );
+  };
+
+  const onFrame = (frame: AudioFrame, realDt: number) => {
+    const s = settingsRef.current;
+    if (!s.autoCycle || cyclePausedRef.current) {
+      cycleTimer.current.reset();
+      return;
+    }
+    // Sekme gizliyken geçen süre sayılmasın (rAF durur, dönüşte tek büyük adım gelir).
+    if (cycleTimer.current.tick(Math.min(realDt, 0.25), s.autoCycleSec, frame.beat, s.autoCycleOnBeat)) advanceAuto();
+  };
 
   const startLoop = (engine: AudioEngine) => {
     if (loopRef.current) {
@@ -57,34 +138,23 @@ export default function App() {
       canvas2d: c2d,
       canvasGL: cgl,
       getSettings: (mode) => toView(settingsRef.current, mode),
-      onFps: setFps,
+      getPerf: () => settingsRef.current,
+      onFps: (value, scale) => {
+        if (settingsRef.current.showFps) setFps({ fps: value, scale });
+      },
+      onFrame,
+      onModeError: (id, err) => {
+        console.error(err);
+        showToast(`"${modeMeta(id).name}" modu bir hata nedeniyle durduruldu.`, 'error');
+      },
+      onContextLost: () => showToast('Grafik bağlamı kayboldu; yeniden kuruluyor…', 'error'),
     });
-    loop.setMode(modeRef.current).then(() => loop.start());
     loopRef.current = loop;
-  };
-
-  const handlePick = async (type: SourceType, file?: File) => {
-    setError(null);
-    if (!engineRef.current) engineRef.current = new AudioEngine();
-    const engine = engineRef.current;
-    engine.onEnded = () => handleChangeSource();
-    try {
-      if (type === 'file') {
-        if (!file) return;
-        await engine.startFile(file);
-        setFileName(file.name);
-      } else if (type === 'tab') {
-        await engine.startTab();
-      } else if (type === 'system') {
-        await engine.startSystem();
-      } else {
-        await engine.startMic();
-      }
-      setSource(type);
-      startLoop(engine);
-    } catch (e) {
-      setError(friendlyError(e));
-    }
+    const id = modeRef.current;
+    loop
+      .setMode(id)
+      .catch((err: unknown) => handleModeError(id, err))
+      .finally(() => loop.start());
   };
 
   const handleChangeSource = () => {
@@ -94,9 +164,81 @@ export default function App() {
     setError(null);
   };
 
+  const handlePick = async (type: SourceType, files?: File[]) => {
+    setError(null);
+    if (!engineRef.current) engineRef.current = new AudioEngine();
+    const engine = engineRef.current;
+    engine.onEnded = () => handleChangeSource();
+    engine.onTrackError = (name) => showToast(`Çalınamadı: ${trackTitle(name)} — sıradakine geçildi.`, 'error');
+    try {
+      if (type === 'file') {
+        if (!files?.length) return;
+        await engine.startFiles(files);
+      } else if (type === 'tab') {
+        await engine.startTab();
+      } else if (type === 'system') {
+        await engine.startSystem();
+      } else {
+        await engine.startMic(settingsRef.current.micDeviceId);
+      }
+      setSource(type);
+      startLoop(engine);
+    } catch (e) {
+      // Çalışırken (ekrana dosya bırakınca) önceki kaynak durdurulduysa kaynak ekranına dön.
+      if (sourceRef.current !== null && engine.activeSource === null) handleChangeSource();
+      setError(friendlyError(e));
+    }
+  };
+
+  const handleMicDevice = async (deviceId: string) => {
+    update({ micDeviceId: deviceId });
+    const engine = engineRef.current;
+    if (!engine || sourceRef.current !== 'mic') return;
+    try {
+      await engine.startMic(deviceId);
+    } catch (e) {
+      showToast(friendlyError(e), 'error');
+    }
+  };
+
+  const toggleAutoCycle = () => {
+    const on = !settings.autoCycle;
+    update({ autoCycle: on });
+    if (!on) {
+      showToast('Otomatik mod geçişi kapalı');
+      return;
+    }
+    const favs = settings.autoCycleScope === 'favorites' && settings.favorites.length >= 2;
+    showToast(`Otomatik mod geçişi açık · ${favs ? 'favoriler' : 'tüm modlar'}, ${settings.autoCycleSec} sn`);
+  };
+
   const toggleFullscreen = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen();
+  };
+
+  // Görselleştirme sırasında ekrana bırakılan ses dosyaları: dosya kaynağında listeye eklenir, değilse kaynak olur.
+  const onStageDragOver = (e: DragEvent<HTMLDivElement>) => {
+    if (source !== null && e.dataTransfer.types.includes('Files')) e.preventDefault();
+  };
+
+  const onStageDrop = (e: DragEvent<HTMLDivElement>) => {
+    if (source === null) return;
+    e.preventDefault();
+    const files = audioFiles(e.dataTransfer.files);
+    if (files.length === 0) {
+      showToast('Bırakılanlar arasında ses dosyası yok.', 'error');
+      return;
+    }
+    const engine = engineRef.current;
+    if (source === 'file' && engine) {
+      engine.addFiles(files);
+      showToast(
+        files.length === 1 ? `Listeye eklendi: ${trackTitle(files[0].name)}` : `${files.length} parça listeye eklendi`,
+      );
+    } else {
+      void handlePick('file', files);
+    }
   };
 
   useEffect(() => {
@@ -108,7 +250,13 @@ export default function App() {
   }, [settings]);
 
   useEffect(() => {
-    void loopRef.current?.setMode(modeId);
+    rememberMode(modeId);
+    cycleTimer.current.reset();
+    loopRef.current?.setMode(modeId).catch((err: unknown) => handleModeError(modeId, err));
+    if (changeRef.current !== 'ui' && sourceRef.current !== null && settingsRef.current.modeToast) {
+      showToast(modeMeta(modeId).name);
+    }
+    changeRef.current = 'ui';
   }, [modeId]);
 
   useEffect(() => {
@@ -120,12 +268,12 @@ export default function App() {
         e.key.length === 1 ? (e.shiftKey ? e.key.toUpperCase() : e.key.toLowerCase()) : e.key;
       const favMode = favoriteForKey(settingsRef.current.favorites, key);
       if (favMode) {
-        setModeId(favMode);
+        selectMode(favMode, 'key');
         return;
       }
       const mode = MODES.find((m) => m.key === key);
       if (mode) {
-        setModeId(mode.id);
+        selectMode(mode.id, 'key');
         return;
       }
       switch (key) {
@@ -147,9 +295,16 @@ export default function App() {
           setPickerOpen(true);
           break;
         case 'ArrowRight':
-        case 'ArrowLeft':
-          setModeId((cur) => adjacentMode(cur, key === 'ArrowRight' ? 1 : -1));
+        case 'ArrowLeft': {
+          const forward = key === 'ArrowRight';
+          if (e.shiftKey) {
+            const engine = engineRef.current;
+            if (engine && sourceRef.current === 'file') void (forward ? engine.nextTrack() : engine.prevTrack());
+            break;
+          }
+          selectMode((cur) => adjacentMode(cur, forward ? 1 : -1), 'key');
           break;
+        }
         case 'Escape':
           setPickerOpen(false);
           setPanelOpen(false);
@@ -200,6 +355,8 @@ export default function App() {
 
   useEffect(
     () => () => {
+      window.clearTimeout(toastTimer.current);
+      fadeTimers.current.forEach((t) => window.clearTimeout(t));
       loopRef.current?.dispose();
       loopRef.current = null;
       engineRef.current?.dispose();
@@ -209,9 +366,14 @@ export default function App() {
   );
 
   return (
-    <div className={`stage ${idle && !pickerOpen && !panelOpen ? 'stage--idle' : ''}`}>
+    <div
+      className={`stage ${idle && !pickerOpen && !panelOpen ? 'stage--idle' : ''} ${panelOpen ? 'stage--panel' : ''}`}
+      onDragOver={onStageDragOver}
+      onDrop={onStageDrop}
+    >
       <canvas ref={canvas2dRef} className="stage__canvas" />
       <canvas ref={canvasGLRef} className="stage__canvas" style={{ display: 'none' }} />
+      <div className={`stage__fade ${fading ? 'stage__fade--on' : ''}`} aria-hidden="true" />
 
       {source === null ? (
         <SourcePicker onPick={handlePick} error={error} />
@@ -224,11 +386,25 @@ export default function App() {
                 <ModeSwitcher
                   active={modeId}
                   open={pickerOpen}
-                  onChange={setModeId}
+                  onChange={(id) => selectMode(id, 'ui')}
                   onOpenChange={setPickerOpen}
                 />
                 <div className="topbar__actions">
-                  {settings.showFps && <span className="fps">{fps} FPS</span>}
+                  {settings.showFps && (
+                    <span className="fps" title={fps.scale < 1 ? 'Çizim çözünürlüğü (otomatik / performans ayarı)' : undefined}>
+                      {fps.fps} FPS{fps.scale < 1 && ` · %${Math.round(fps.scale * 100)}`}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    className={`btn btn--ghost btn--icon ${settings.autoCycle ? 'btn--active' : ''}`}
+                    title={settings.autoCycle ? 'Otomatik mod geçişi: açık' : 'Otomatik mod geçişi: kapalı'}
+                    aria-label="Otomatik mod geçişi"
+                    aria-pressed={settings.autoCycle}
+                    onClick={toggleAutoCycle}
+                  >
+                    <AutoCycleIcon />
+                  </button>
                   <button
                     type="button"
                     className={`btn btn--ghost btn--icon ${panelOpen ? 'btn--active' : ''}`}
@@ -250,22 +426,25 @@ export default function App() {
                   </button>
                 </div>
               </header>
-              {source === 'file' && engineRef.current && (
-                <TransportControls engine={engineRef.current} fileName={fileName} />
-              )}
+              {source === 'file' && engineRef.current && <TransportControls engine={engineRef.current} />}
               {panelOpen && <SettingsPanel
                   modeId={modeId}
+                  source={source}
+                  tab={panelTab}
+                  onTabChange={setPanelTab}
                   onClose={() => setPanelOpen(false)}
                   onChangeSource={() => {
                     setPanelOpen(false);
                     handleChangeSource();
                   }}
+                  onMicDevice={(id) => void handleMicDevice(id)}
                 />}
             </>
           )}
           {uiHidden && <div className="ui-hint">Arayüzü göstermek için H tuşuna basın</div>}
         </>
       )}
+      <Toast toast={toast} />
     </div>
   );
 }

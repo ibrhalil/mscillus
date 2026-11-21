@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent, ReactNode } from 'react';
+import { audioFiles } from '../audio/files';
 import type { SourceType } from '../audio/types';
 import { PickerBackdrop } from './PickerBackdrop';
 
 interface Props {
-  onPick: (source: SourceType, file?: File) => void | Promise<void>;
+  onPick: (source: SourceType, files?: File[]) => void | Promise<void>;
   error: string | null;
 }
 
@@ -70,13 +71,13 @@ const CARDS: { id: SourceType; title: string; desc: string; hint: string; badge?
     id: 'file',
     title: 'Yerel Dosya',
     desc: 'MP3 · FLAC · WAV · OGG dosyalarını görselleştirir',
-    hint: 'Dosyayı ekrana sürükleyip bırakabilirsiniz',
+    hint: 'Birden çok dosya seçerseniz çalma listesi olur',
   },
   {
     id: 'mic',
     title: 'Mikrofon',
     desc: 'Hoparlörden çalan müziği mikrofonla dinler',
-    hint: 'Kulaklıkla geri besleme (çınlama) olmaz',
+    hint: 'Giriş aygıtı (örn. BlackHole) ayarlar panelinden seçilir',
   },
 ];
 
@@ -95,13 +96,15 @@ export function SourcePicker({ onPick, error }: Props) {
   const onDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     endDrag();
-    const file = e.dataTransfer.files[0];
-    if (file) void onPick('file', file);
+    const files = audioFiles(e.dataTransfer.files);
+    // Ses olarak tanınmayan tek dosya da denensin; çalınamazsa anlamlı hata gösterilir.
+    if (files.length > 0) void onPick('file', files);
+    else if (e.dataTransfer.files[0]) void onPick('file', [e.dataTransfer.files[0]]);
   };
 
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) void onPick('file', file);
+    const files = e.target.files ? Array.from(e.target.files) : [];
+    if (files.length > 0) void onPick('file', files);
     e.target.value = '';
   };
 
@@ -162,13 +165,13 @@ export function SourcePicker({ onPick, error }: Props) {
           ))}
         </div>
 
-        <input ref={inputRef} type="file" accept="audio/*" hidden onChange={onFileChange} />
+        <input ref={inputRef} type="file" accept="audio/*" multiple hidden onChange={onFileChange} />
 
         <button type="button" className="picker__drop" onClick={pickFile}>
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
           </svg>
-          Ya da bir ses dosyasını buraya sürükleyip bırakın
+          Ya da ses dosyalarını buraya sürükleyip bırakın
         </button>
 
         {error && (
@@ -196,7 +199,7 @@ export function SourcePicker({ onPick, error }: Props) {
             <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 16V4M7 9l5-5 5 5M5 20h14" />
             </svg>
-            Müzik dosyasını bırakın
+            Müzik dosyalarını bırakın
           </div>
         </div>
       )}

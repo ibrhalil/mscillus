@@ -60,3 +60,83 @@ export function StarIcon({ filled }: { filled: boolean }) {
     </svg>
   );
 }
+
+export function PlayIcon() {
+  return (
+    <Icon>
+      <path d="M7 4.5v15l12.5-7.5z" fill="currentColor" />
+    </Icon>
+  );
+}
+
+export function PauseIcon() {
+  return (
+    <Icon>
+      <path d="M8 5v14M16 5v14" strokeWidth="3" />
+    </Icon>
+  );
+}
+
+export function PrevIcon() {
+  return (
+    <Icon>
+      <path d="M18 6v12l-9-6z" fill="currentColor" />
+      <path d="M6 6v12" />
+    </Icon>
+  );
+}
+
+export function NextIcon() {
+  return (
+    <Icon>
+      <path d="M6 6v12l9-6z" fill="currentColor" />
+      <path d="M18 6v12" />
+    </Icon>
+  );
+}
+
+export function RepeatIcon({ one }: { one: boolean }) {
+  return (
+    <Icon>
+      <path d="M17 2l4 4-4 4" />
+      <path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4" />
+      <path d="M21 13v1a4 4 0 0 1-4 4H3" />
+      {one && <path d="M11 10.5l1.5-1v5" strokeWidth="1.8" />}
+    </Icon>
+  );
+}
+
+export function ShuffleIcon() {
+  return (
+    <Icon>
+      <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+    </Icon>
+  );
+}
+
+export function ListIcon() {
+  return (
+    <Icon>
+      <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+    </Icon>
+  );
+}
+
+export function VolumeIcon({ muted }: { muted: boolean }) {
+  return (
+    <Icon>
+      <path d="M11 5L6 9H2v6h4l5 4z" />
+      {muted ? <path d="M23 9l-6 6M17 9l6 6" /> : <path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a10 10 0 0 1 0 14" />}
+    </Icon>
+  );
+}
+
+/** Otomatik mod geçişi (döngü okları). */
+export function AutoCycleIcon() {
+  return (
+    <Icon>
+      <path d="M21 12a9 9 0 0 1-15.5 6.2M3 12a9 9 0 0 1 15.5-6.2" />
+      <path d="M18.5 2v4h-4M5.5 22v-4h4" />
+    </Icon>
+  );
+}

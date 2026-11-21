@@ -433,7 +433,7 @@ export class Chladni implements Visualizer {
         const hh = gh[i];
         if (hh <= 0) continue;
         ctx.globalAlpha = Math.min(1, (0.05 + 0.3 * (1 - hh)) * vis);
-        const sz = px * size * (1 + hh * 1.0 * Math.min(1, vis));
+        const sz = px * size * (1 + hh * Math.min(1, vis));
         ctx.fillRect(x0 + ((gx[i] + 1) / 2) * pw - sz / 2, y0 + ((gy[i] + 1) / 2) * ph - sz / 2, sz, sz);
       }
       ctx.globalAlpha = 1;

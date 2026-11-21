@@ -1,7 +1,18 @@
 import { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import type { ReactNode } from 'react';
+import type { CycleScope } from '../render/AutoCycle';
+import type { Resolution } from '../render/RenderLoop';
 import { clampOption, SHARED_OPTIONS } from '../visuals/options';
-import { PALETTES } from '../visuals/palettes';
+import {
+  CUSTOM_COLORS_MAX,
+  CUSTOM_COLORS_MIN,
+  CUSTOM_PALETTE_ID,
+  DEFAULT_CUSTOM_PALETTE,
+  isHexColor,
+  PALETTES,
+  resolvePalette,
+} from '../visuals/palettes';
+import type { CustomPalette } from '../visuals/palettes';
 import { MODES, modeMeta } from '../visuals/registry';
 import type { ModeId } from '../visuals/registry';
 import type { VisualizerSettingsView } from '../visuals/types';
@@ -16,6 +27,22 @@ export interface Settings {
   modeOptions: Record<string, Record<string, number>>;
   /** Favori mod kimlikleri (eklenme sırasıyla); mod seçicide en üstte gösterilir. */
   favorites: ModeId[];
+  /** `paletteId === 'custom'` iken kullanılan, panelde düzenlenen palet. */
+  customPalette: CustomPalette;
+  /** Çizim çözünürlüğü; 'auto' FPS düşünce kendiliğinden küçültür. */
+  resolution: Resolution;
+  /** 0 = sınırsız. */
+  fpsCap: number;
+  /** Klavyeyle / otomatik geçişte mod adı kısa süre ekranda görünür. */
+  modeToast: boolean;
+  /** Mikrofon kaynağının giriş aygıtı ('' = sistem varsayılanı). */
+  micDeviceId: string;
+  autoCycle: boolean;
+  autoCycleSec: number;
+  autoCycleScope: CycleScope;
+  autoCycleShuffle: boolean;
+  /** Süre dolunca sıradaki vuruşu bekle. */
+  autoCycleOnBeat: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -26,17 +53,38 @@ export const DEFAULT_SETTINGS: Settings = {
   showFps: false,
   modeOptions: {},
   favorites: [],
+  customPalette: DEFAULT_CUSTOM_PALETTE,
+  resolution: 'auto',
+  fpsCap: 0,
+  modeToast: true,
+  micDeviceId: '',
+  autoCycle: false,
+  autoCycleSec: 30,
+  autoCycleScope: 'favorites',
+  autoCycleShuffle: true,
+  autoCycleOnBeat: true,
 };
 
 const STORAGE_KEY = 'mscillus.settings.v1';
-const FFT_SIZES = [512, 1024, 2048, 4096];
+const SAVE_DELAY_MS = 300;
+export const FFT_SIZES = [512, 1024, 2048, 4096];
+export const FPS_CAPS = [0, 60, 30];
+export const RESOLUTIONS: readonly Resolution[] = ['auto', 'high', 'medium', 'low'];
+export const AUTO_CYCLE_SEC = { min: 10, max: 300, step: 5 } as const;
 
 function clampNumber(value: unknown, min: number, max: number, fallback: number): number {
   const n = typeof value === 'number' && Number.isFinite(value) ? value : fallback;
   return Math.min(max, Math.max(min, n));
 }
 
-function sanitize(raw: unknown): Settings {
+const bool = (v: unknown, fallback: boolean): boolean => (typeof v === 'boolean' ? v : fallback);
+
+function oneOf<T>(v: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(v as T) ? (v as T) : fallback;
+}
+
+/** Bozuk / eski kayıtları güvenli değerlere çevirir (bilinmeyen alanlar atılır, aralıklar sıkıştırılır). */
+export function sanitize(raw: unknown): Settings {
   const partial = typeof raw === 'object' && raw !== null ? (raw as Partial<Settings>) : {};
   return {
     sensitivity: clampNumber(partial.sensitivity, 0.2, 3, DEFAULT_SETTINGS.sensitivity),
@@ -44,11 +92,39 @@ function sanitize(raw: unknown): Settings {
     fftSize: FFT_SIZES.includes(partial.fftSize as number)
       ? (partial.fftSize as number)
       : DEFAULT_SETTINGS.fftSize,
-    paletteId: partial.paletteId && PALETTES[partial.paletteId] ? partial.paletteId : DEFAULT_SETTINGS.paletteId,
-    showFps: typeof partial.showFps === 'boolean' ? partial.showFps : DEFAULT_SETTINGS.showFps,
+    paletteId:
+      partial.paletteId && (PALETTES[partial.paletteId] || partial.paletteId === CUSTOM_PALETTE_ID)
+        ? partial.paletteId
+        : DEFAULT_SETTINGS.paletteId,
+    showFps: bool(partial.showFps, DEFAULT_SETTINGS.showFps),
     modeOptions: sanitizeModeOptions(partial.modeOptions),
     favorites: sanitizeFavorites(partial.favorites),
+    customPalette: sanitizeCustomPalette(partial.customPalette),
+    resolution: oneOf(partial.resolution, RESOLUTIONS, DEFAULT_SETTINGS.resolution),
+    fpsCap: oneOf(partial.fpsCap, FPS_CAPS, DEFAULT_SETTINGS.fpsCap),
+    modeToast: bool(partial.modeToast, DEFAULT_SETTINGS.modeToast),
+    micDeviceId: typeof partial.micDeviceId === 'string' ? partial.micDeviceId : DEFAULT_SETTINGS.micDeviceId,
+    autoCycle: bool(partial.autoCycle, DEFAULT_SETTINGS.autoCycle),
+    autoCycleSec: Math.round(
+      clampNumber(partial.autoCycleSec, AUTO_CYCLE_SEC.min, AUTO_CYCLE_SEC.max, DEFAULT_SETTINGS.autoCycleSec),
+    ),
+    autoCycleScope: oneOf<CycleScope>(partial.autoCycleScope, ['favorites', 'all'], DEFAULT_SETTINGS.autoCycleScope),
+    autoCycleShuffle: bool(partial.autoCycleShuffle, DEFAULT_SETTINGS.autoCycleShuffle),
+    autoCycleOnBeat: bool(partial.autoCycleOnBeat, DEFAULT_SETTINGS.autoCycleOnBeat),
   };
+}
+
+/** Geçerli bir `#rrggbb` listesi (2-6 renk) ve arka plan değilse varsayılan özel palet. Geçerliyse aynı nesne (kimlik korunur). */
+function sanitizeCustomPalette(raw: unknown): CustomPalette {
+  if (typeof raw !== 'object' || raw === null) return DEFAULT_CUSTOM_PALETTE;
+  const { colors, bg } = raw as Partial<CustomPalette>;
+  const valid =
+    Array.isArray(colors) &&
+    colors.length >= CUSTOM_COLORS_MIN &&
+    colors.length <= CUSTOM_COLORS_MAX &&
+    colors.every(isHexColor) &&
+    isHexColor(bg);
+  return valid ? (raw as CustomPalette) : DEFAULT_CUSTOM_PALETTE;
 }
 
 function sanitizeFavorites(raw: unknown): ModeId[] {
@@ -140,12 +216,21 @@ const SettingsContext = createContext<SettingsContextValue | null>(null);
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, dispatch] = useReducer(reducer, undefined, load);
 
+  // Kaydırıcı sürüklenirken her adımda yazmamak için gecikmeli kayıt; sayfa kapanırken bekleyen kayıt hemen yazılır.
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
-    } catch {
-      return;
-    }
+    const save = () => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+      } catch {
+        // depolama dolu / kapalı
+      }
+    };
+    const timer = window.setTimeout(save, SAVE_DELAY_MS);
+    window.addEventListener('pagehide', save);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('pagehide', save);
+    };
   }, [settings]);
   const value = useMemo<SettingsContextValue>(
     () => ({
@@ -187,7 +272,7 @@ export function toView(settings: Settings, mode: ModeId): VisualizerSettingsView
   const opt = modeOptionValues(settings, mode);
   const pick = (k: keyof typeof SHARED_OPTIONS) => opt[k] ?? SHARED_OPTIONS[k].default;
   const view: VisualizerSettingsView = {
-    palette: PALETTES[settings.paletteId] ?? PALETTES.neon,
+    palette: resolvePalette(settings.paletteId, settings.customPalette),
     glow: pick('glow') > 0,
     glowQuality: Math.max(0, Math.round(pick('glow')) - 1),
     barCount: Math.round(pick('barCount')),

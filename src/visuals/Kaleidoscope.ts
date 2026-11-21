@@ -3,7 +3,7 @@ import { binAtLerp, sampleGradient } from './palettes';
 import { QuadShader } from './quadShader';
 import type { Visualizer, VisualizerSettingsView } from './types';
 import type { AudioFrame } from '../audio/types';
-import { clamp01, damp } from './util';
+import { clamp01, damp, pixelRatio } from './util';
 
 /**
  * Kaleydoskop (mandala): tam ekran, tek geçişli shader. Ekran önce `segments` adet aynalı dilime katlanır (polar katlama),
@@ -258,7 +258,7 @@ export class Kaleidoscope implements Visualizer {
 
   /** "Çözünürlük" ayarı: çizim tamponunu küçültür (iki zoom fazı + 8 katman piksel başına pahalı olabilir). */
   private applyQuality(level: number): void {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = pixelRatio();
     const ratio = level >= 2 ? dpr : Math.min(dpr, QUALITY_SCALE[level]);
     if (ratio === this.appliedRatio) return;
     this.appliedRatio = ratio;
@@ -376,7 +376,7 @@ export class Kaleidoscope implements Visualizer {
   }
 
   dispose(): void {
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = pixelRatio();
     const el = this.gl.domElement;
     this.gl.setPixelRatio(dpr);
     this.gl.setSize(el.clientWidth || 1, el.clientHeight || 1, false);

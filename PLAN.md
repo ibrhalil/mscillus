@@ -2,7 +2,7 @@
 
 > **BU DOSYA DEVAM EDEN MODEL/GELİŞTİRİCİ İÇİN TEK KAYNAKTIR.**
 > Bir aşama bittiğinde buradaki kutucuğu işaretle, yeni karar aldıysan "Karar Defteri"ne ekle.
-> Son güncelleme: **v0.3.0** — mod modernizasyonu tamamlandı (38 mod; GPU'ya taşınan/yeniden yazılan modlar, ortak `onset.ts`, favori rakam kısayolları 1-9/0, her modun kendi harf tuşu; Güneş Sistemi/Neon/Twister silindi). Önceki: v0.2.4 — Solucan Deliği (W) köşe/çökme hataları düzeltildi: kapalı periyodik "salınan halka" yolu (keskin köşe imkânsız), parallel-transport up + viraja yatma (banking). Fosfen (⇧F) v0.3'te geometrik desen olarak yeniden yazıldı.
+> Son güncelleme: **v0.4.0** — optimizasyon + onaylı geliştirmeler (2026-11-21): dosya modunda ses yolu ayrıldı (hassasiyet artık duyulan sesi, ses seviyesi görseli değiştirmiyor), zaman tabanlı vuruş algılama, Performans ayarı (otomatik/sabit çözünürlük ölçeği + FPS sınırı), dayanıklılık (deploy sonrası eksik chunk → bir kez yenile, mod hatası bildirimi, WebGL bağlam kaybı kurtarma), Wake Lock + mod adı bildirimi, mikrofon giriş aygıtı seçimi, otomatik mod geçişi (varsayılan favoriler), çalma listesi + medya tuşları, özel palet + 5 yeni palet, Vitest test altyapısı (50 test). Ayrıntı: Karar Defteri sonu. Önceki: **v0.3.0** — mod modernizasyonu tamamlandı (38 mod; GPU'ya taşınan/yeniden yazılan modlar, ortak `onset.ts`, favori rakam kısayolları 1-9/0, her modun kendi harf tuşu; Güneş Sistemi/Neon/Twister silindi). Önceki: v0.2.4 — Solucan Deliği (W) köşe/çökme hataları düzeltildi: kapalı periyodik "salınan halka" yolu (keskin köşe imkânsız), parallel-transport up + viraja yatma (banking). Fosfen (⇧F) v0.3'te geometrik desen olarak yeniden yazıldı.
 
 ---
 
@@ -176,10 +176,16 @@ interface Settings {
 ```
 - `localStorage` anahtarı: `mscillus.settings.v1`
 - Ayar değişimi: React state → `useEffect` ile engine köprüsü (`setSensitivity` vb.)
+- **Güncel durum (v0.4):** yukarıdaki blok tarihî; glow/barCount/particleCount/rotationSpeed artık mod seçenekleri
+  (`modeOptions[modeId]`). v0.4'te eklenen alanlar: `customPalette {colors 2-6 #rrggbb, bg}` (`paletteId: 'custom'`),
+  `resolution: 'auto'|'high'|'medium'|'low'` (varsayılan auto), `fpsCap: 0|60|30`, `modeToast` (varsayılan açık),
+  `micDeviceId` ('' = varsayılan), `autoCycle` (kapalı), `autoCycleSec` 10-300 (30), `autoCycleScope: 'favorites'|'all'`
+  (favorites), `autoCycleShuffle` (açık), `autoCycleOnBeat` (açık). Tamamı `sanitize()` (dışa açık, testli) ile
+  doğrulanır. Kayıt 300 ms gecikmeli (`pagehide`'da hemen yazılır). Son mod `sessionStorage`'da (`mscillus.lastMode`).
 
 ## 7. Klavye Kısayolları
 
-`harfler, ⇧Shift+harfler` mod (her modun KENDİ harfi var; mod seçicide gösterilir) · `1-9, 0` FAVORİ modlar (eklenme sırasıyla ilk 10 favori; modun ikinci kısayolu, favoriden çıkarılınca sıradakiler kayar) · `←/→` önceki/sonraki mod · `/` mod seçici (arama + kategori) · `Space` play/pause (dosya) · `S` ayar paneli · `H` UI gizle/göster · `F` tam ekran · `Esc` seçici/panel kapat
+`harfler, ⇧Shift+harfler` mod (her modun KENDİ harfi var; mod seçicide gösterilir) · `1-9, 0` FAVORİ modlar (eklenme sırasıyla ilk 10 favori; modun ikinci kısayolu, favoriden çıkarılınca sıradakiler kayar) · `←/→` önceki/sonraki mod · `⇧←/⇧→` önceki/sonraki parça (dosya kaynağı) · `/` mod seçici (arama + kategori) · `Space` play/pause (dosya) · `S` ayar paneli · `H` UI gizle/göster · `F` tam ekran · `Esc` seçici/panel kapat
 
 **Tuş şeması notu:** harf tuşları dolduğu için ikinci varyantlar BÜYÜK harf (Shift'li) key aldı
 (App'te `e.shiftKey ? key.toUpperCase() : key.toLowerCase()`). S/H/F kısayolları Shift'siz
@@ -204,6 +210,10 @@ uppercase key `⇧X` olarak etiketlenir.
 - [x] 8. Doğrulama: `npm run build` GEÇTİ (tsc temiz + vite build ok); `npm run dev` smoke test OK
   (localhost:5173 HTML + module 200). **Gerçek müzikle manuel test TARAYICIDA YAPILMADI.**
 - [x] 9. PLAN.md durumları güncellendi
+- [x] 10. **v0.4.0 optimizasyon + onaylı geliştirmeler** (bkz. Karar Defteri sonu). `npm test` (Vitest, 50 test) +
+  `npm run build` GEÇTİ; headless Chromium ile duman testi yapıldı (dosya listesi + bozuk dosya atlama, ayar paneli,
+  çözünürlük ölçeği, mikrofon sahte aygıt listesi, WebGL modu, otomatik geçiş, yenilemede son mod). **Gerçek müzik /
+  gerçek GPU / medya tuşları / Wake Lock / bağlam kaybı TARAYICIDA ELLE DOĞRULANMADI.**
 
 **SIRADAKİ ADIMLAR (öncelik sırasıyla):**
 1. **Mod birleştirme / karıştırma özelliği** — kullanıcı talebi (v0.1.6): "ileride bu modları
@@ -230,7 +240,8 @@ uppercase key `⇧X` olarak etiketlenir.
    engine'de kalıcı tek `audioEl` + tek elementSource tutulur, dosya değişince sadece `src` değişir.
 4. **Mikrofon constraint'leri:** `echoCancellation/noiseSuppression/autoGainControl: false`
    (müzik net yakalansın diye).
-5. **Beat detection:** bass bandı (~0-250Hz) anlık enerji vs 1sn'lik kayan ortalama; eşik ~1.35x;
+5. **Beat detection:** bass bandı (~0-250Hz) anlık enerji vs 0,82 sn'lik kayan ortalama (v0.4'ten beri ZAMAN
+   tabanlı halka tampon; önceden 50 kare → 144 Hz ekranda 0,35 sn'ye düşüyordu); en az 0,2 sn geçmiş; eşik ~1.35x;
    min 250ms cooldown; `beatPulse` her karede sönümlenir (dt tabanlı).
 6. **DPR:** canvas fiziksel boyut = clientSize × devicePixelRatio; ctx2d'e setTransform ile ölçek;
    Three.js'te `renderer.setSize(w,h,false)` + kamera aspect güncelle.
@@ -243,6 +254,19 @@ uppercase key `⇧X` olarak etiketlenir.
 12. **Kaynak değişiminde rAF döngüsü** — handleChangeSource loop'u stop() eder; yeni kaynak seçildiğinde
     startLoop MUTLAKA mevcut loop'u start() ile yeniden başlatmalı (aşağıda düzeltildi; bu hata
     "hiçbir kaynak çalışmıyor" görüntüsüne yol açmıştı).
+13. **Dosya modunda ses grafiği (v0.4):** `elementSource → gainNode(hassasiyet) → analyser` (analiz kolu, çıkışa
+    BAĞLANMAZ) ve `elementSource → outputGain(ses seviyesi) → destination` (hoparlör kolu). Eskiden hoparlör analiz
+    kolunun sonundaydı: hassasiyet 3x'te ses bozuluyordu, `el.volume` kısılınca görsel de sönüyordu. `el.volume`
+    artık hiç değiştirilmez (1).
+14. **Seçenek kimlikleri mod içinde benzersiz olmalı:** `optionsOf` her moda paylaşılan `speed` (Animasyon Hızı)
+    ekler; moda özel `speed` adlı seçenek çakışır (iki kaydırıcı aynı değere bağlı + hız iki kez uygulanır). v0.4'te
+    Hipnoz `spin`, Fosfen `flow`, Kağıt Yırtma `tearSpeed` yapıldı; `registry.test.ts` bunu artık yakalar.
+15. **Palet önbellekleri `palette.id` ile:** modlar LUT'u id değişince yeniler → özel paletin id'si renkleri içerir
+    (`custom:<renkler>/<bg>`), `resolvePalette` nesne başına sabit `Palette` döndürür.
+16. **Kendi piksel oranını ayarlayan modlar** (Solucan Deliği, Kaleydoskop) `util.pixelRatio()` kullanmalı (genel
+    çözünürlük ölçeği dahil); `Math.min(2, devicePixelRatio)` doğrudan kullanılmamalı.
+17. **Deploy sonrası eski sekme:** hash'li mod parçası bulunamazsa `vite:preloadError` (main.tsx) veya `setMode`
+    hatası → `reloadOnce()` (30 sn korumalı). Son mod sessionStorage'dan geri gelir; ses kaynağı yeniden seçilmeli.
 
 ## 10. Karar Defteri (tarih sırasıyla, devam eden model için)
 
@@ -1034,11 +1058,28 @@ uppercase key `⇧X` olarak etiketlenir.
 
 - **Op-Art Halkalar (şekil sabit, ritim = kalınlık/parlaklık; yeni "Dolu Bantlar" stili):** eski sürümde (1) bas halkaların YARIÇAPINI ölçekliyordu (`pulse = 1 + bass·0.22·o.pulse` → şekil ritimle değişiyordu), (2) akış hızı ham `level`le (`18 + level·80`) sıçrıyordu, (3) vuruşta faz birden `spacing·0.4` atlıyordu. Yeni: yarıçap ölçeği YOK; hız `(14 + 50·süzülmüşSeviye + 45·vuruşDalgası)·px` hedefine `damp 3` ile yaklaşır (faz sıçraması yok); her halkanın kalınlığı `1.6 + (3.2·e + 2.5·dalga)·pulse`, alfası `0.15 + 0.7·fade + 0.2e + 0.3dalga`; `e` = halkanın `r/maxR` konumundaki frekans (yumuşatılmış); vuruşta (OnsetTracker/beat, EventScale) merkezden dışa `0.7·maxR/sn` parlaklık dalgası (en fazla 3); yeni halka merkezde `r/(1.5·aralık)` ile yumuşakça belirir; 72 segment. `style=1` Dolu Bantlar: halkalar dıştan içe dolu çokgenlerle boyanır (çift halka sayısı, `maxR = hypot/2·1.02` ekranı kaplar; arka plan en dış halkanın zıt rengi → sarma dikişsiz), renkler `c0` ↔ koyu `c1·0.16`, vuruş/frekans halkayı açar (`lighten`). Varsayılan stil Çizgi (eski görünüm korundu). Doğrulanmadı.
 
+- **v0.4.0 — OPTİMİZASYON + ONAYLI GELİŞTİRMELER (2026-11-21; kullanıcı: "proje optimize et ve eklenmesi gereken ne gibi geliştirmeler var onları tespit et ve benim onayımla geliştirmeye ekle"):** inceleme sonrası öneriler listelendi, kullanıcı seçti. **Onaylanıp uygulananlar:**
+  - *Hızlı kazanımlar:* `sampleGradient` hex'i her çağrıda ayrıştırmıyor (`rgbOf` önbelleği, ≤512 girdi; `hexToRgb` kopya döndürür); FPS sayacı yalnız gösterge açıkken React state'ine yazılır (eskiden tüm App'i saniyede 2 kez yeniden çizdiriyordu); ayar kaydı 300 ms debounce + `pagehide`'da yazma; three.js `requestIdleCallback` ile boşta önceden indirilir; `public/_headers` → `/assets/*` 1 yıl `immutable` + `nosniff`/`Referrer-Policy`. `vite.config.ts` `chunkSizeWarningLimit: 800` (three parçası bilinçli, tembel).
+  - *Zaman tabanlı vuruş algılama* (`beatDetector.ts` halka tampon, testte 60/144/240 Hz aynı sonuç).
+  - *Performans ayarı:* `RenderLoop` → `getPerf()`; Çözünürlük Otomatik/Yüksek/Dengeli(0.75)/Düşük(0.5) `util.setRenderScale` + `pixelRatio()`; `AutoScale.ts`: saniyelik FPS ölçümü, hedef 60 (veya FPS sınırı), `<%85` iki ölçüm → bir basamak küçült (1/0.85/0.7/0.6/0.5), küçültme ≥%8 kazandırmazsa geri al + 30→300 sn engelle (tarayıcı 30 FPS kısıtı / işlemci darboğazı), `≥%95` 4 sn → büyüt, büyüttükten ≤10 sn sonra düşerse büyütme beklemesi ikiye katlanır (salınım yok); basamak mod başına hatırlanır. FPS sınırı (60/30) rAF içinde kare atlama (2 ms tolerans, kayma yok). Boyut değişiminde 2D tuval arka planla doldurulur. FPS göstergesi `· %70` gibi ölçeği gösterir.
+  - *Dosya ses yolu düzeltmesi* (Teknik Not 13). Ses seviyesi `engine.setVolume` (outputGain), sessiz düğmesi.
+  - *Dayanıklılık:* `chunkReload.ts` (Teknik Not 17); `setMode` hatası artık yutulmuyor → bildirim, döngü yine başlar (eskiden ilk mod yüklenemezse siyah ekran); `update()` istisnası → mod durdurulur + bildirim (her karede aynı hata yok); `webglcontextlost` → `preventDefault` + bildirim, `restored` → mod baştan kurulur (three kendi durumunu kurduktan sonra, `setTimeout 0`).
+  - *Wake Lock + mod adı bildirimi:* `ui/useWakeLock.ts` (kaynak seçiliyken, sekme dönüşünde yeniden alır); `ui/Toast.tsx` — klavye/otomatik mod değişiminde ad (mod çubuğundan tıklamada yok), hatalar kırmızı 5 sn. Ayar: "Mod Değişince Adını Göster".
+  - *Giriş aygıtı seçimi:* Ayarlar → Ses Kaynağı → Giriş Aygıtı (yalnız mikrofon kaynağında; `enumerateDevices` + `devicechange`); seçim anında mikrofonu yeniden açar ve `micDeviceId` olarak saklanır; kayıtlı aygıt yoksa (`OverconstrainedError`/`NotFoundError`) varsayılana düşer. BlackHole rehberi buna göre sadeleşti (sistem girişi değiştirilmez).
+  - *Otomatik mod geçişi* (kullanıcı: "favori olarak seçilmiş modlar arasında olsun ama bunu istemeyen kullanıcılar olabilir opsiyonel yap"): `render/AutoCycle.ts` — `AutoCycleTimer` (süre + isteğe bağlı vuruş bekleme ≤4 sn), `cyclePool` (favoriler ≥2 ise favoriler, değilse tüm modlar; "Tüm Modlar" seçilebilir), `ModeShuffler` (sıralı / torba-karışık, aynı mod art arda yok). App `onFrame` ile sayar; panel/mod seçici açıkken bekler; geçişte 260 ms karartma (`.stage__fade`); elle mod değişimi sayacı sıfırlar. Üst çubukta aç/kapat düğmesi (`AutoCycleIcon`). Kısayol harfi verilmedi (küçük harflerde yalnız `j` boş).
+  - *Çalma listesi + medya tuşları:* `audio/Playlist.ts` (saf, testli: tekrar kapalı/tüm/tek, karıştırma torbası + geçmiş, çalan parça hariç çıkarma, atlama), `AudioEngine.startFiles/addFiles/next/prev/playTrack/removeTrack/cycleRepeat/toggleShuffle`, `subscribeTracks/getTrackState` (`useSyncExternalStore`); bozuk dosya → bildirim + sıradakine geç (tümü bozuksa durur); "önceki" 3 sn'den sonra başa sarar; Media Session (play/pause/önceki/sonraki/seek, metadata = dosya adı, konum). Kaynak ekranında çoklu seçim/bırakma; çalarken ekrana bırakılan dosyalar listeye eklenir (eskiden tarayıcı dosyayı açıp sayfadan çıkıyordu), başka kaynaktayken dosya kaynağına geçer. `TransportControls` yeniden yazıldı (ikonlar, liste penceresi, + Dosya ekle); panel açıkken oynatıcı kalan alanda ortalanır. `⇧←/⇧→` parça. `togglePlay` yalnız dosya kaynağında (eskiden mikrofondayken Space eski dosyayı sessizce çalabiliyordu).
+  - *Özel palet + yeni paletler:* Vaporwave, Siberpunk, Orman, Kor, Pastel; "Özel…" 2-6 renk + arka plan (renk seçici), ilk seçimde o an seçili hazır paletten başlar; palet önizleme şeridi (Teknik Not 15).
+  - *Test altyapısı:* Vitest 4.1 (Vitest 5 Node 22 istiyor; kullanıcının varsayılanı Node 20 — npm 10.8 arborist hatası yüzünden kurulum `npx npm@11 install` ile yapıldı). 7 dosya / 50 test: ayar `sanitize`/`toView`, kayıt (kimlik/harf benzersizliği, uygulama kısayollarıyla çakışma, seçenek varsayılanları ve kimlik benzersizliği), palet yardımcıları, BeatDetector, Playlist, AutoScale, AutoCycle. **Testin bulduğu gerçek hata:** Teknik Not 14 (Hipnoz/Fosfen/Kağıt Yırtma'da hız iki kez uygulanıyordu). Not: bu üç modda eski kayıtlı `speed` değeri artık paylaşılan Animasyon Hızı'na uygulanır.
+  - **Önerilip kullanıcının SEÇMEDİKLERİ (yapılmadı):** ekran görüntüsü (PNG) + sesli video kaydı (MediaRecorder); ayar dışa/içe aktarma (JSON). Ayrıca fark edilen: proje favicon'u yok (`/favicon.ico` 404, konsolda hata) — önerilebilir.
+
+- **v0.4.0 (devam) — AYAR PANELİ SEKMELERE AYRILDI (2026-11-21; kullanıcı: "ayarlar butonu çok karmaşık oldu, hangisi mod ayarı hangisi genel ayar hangisi renk … kullanıcı anlamıyor"):** tek uzun liste yerine 4 sekme: **Bu Mod** (yalnız etkin modun seçenekleri + "Bu Modu Varsayılana Döndür"; üstte mod adı ve harfi), **Renkler** (palet seçimi açılır liste yerine renk şeritli kart ızgarası, `role=radiogroup`; Özel kartı seçilince düzenleyici), **Ses** (şu an dinlenen kaynak, mikrofonda giriş aygıtı, kaynağı değiştir; Tepki Gücü (Hassasiyet) / Yumuşatma / Frekans Ayrıntısı (FFT) — her birinin altında kısa açıklama), **Genel** (Otomatik Mod Geçişi, Ekran: mod adı bildirimi + FPS, Performans, Sıfırlama). Başlık + sekmeler + kapsam satırı ("Yalnızca **X** modunu etkiler…" / "tüm modlarda geçerli") kaydırırken yapışkan (`.panel__top`). Anahtarlar artık etiketle aynı satırda (`Row inline`), açıklamalar `hint` ile. "Tüm Ayarları Sıfırla" artık onay istiyor (eskiden tek tıkla favoriler dahil her şeyi siliyordu); onay bileşeni `ConfirmButton` kaynak değiştirme ile ortak. Son açık sekme oturum boyunca App state'inde (`panelTab`, varsayılan "Bu Mod"). Headless Chromium'da 4 sekme ekran görüntüsüyle kontrol edildi, konsol hatasız.
+
 ## 11. Doğrulama Komutları
 
 ```bash
 npm run dev        # geliştirme sunucusu (tarayıcıda manuel test: müzik aç → sekme paylaş + ses)
 npm run build      # tsc -b && vite build — MUTLAKA geçmeli
+npm test           # Vitest birim testleri — MUTLAKA geçmeli
 npm run preview    # prod önizleme
 ```
 

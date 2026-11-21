@@ -1,0 +1,8 @@
+# Cloudflare static assets: Vite'nin hash'li çıktıları içerik değişince yeni ad alır → süresiz önbelleklenebilir.
+# index.html ve diğer dosyalar varsayılan (yeniden doğrulamalı) önbellekte kalır; yeni sürüm hemen görünür.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin

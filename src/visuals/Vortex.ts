@@ -156,7 +156,7 @@ export class Vortex implements Visualizer {
 
     // Dönüş: tek spiral. Ritim hızı yalnız küçük miktarda değiştirir; yön hiç değişmez.
     const dir = Math.round(o.direction) === 1 ? 1 : -1;
-    const w = dir * o.speed * (0.5 + this.sLevel * 0.25 + this.sBass * 0.1);
+    const w = dir * o.spin * (0.5 + this.sLevel * 0.25 + this.sBass * 0.1);
     this.rot += dt * w;
     this.hue += dt * (0.006 + this.sLevel * 0.03);
 

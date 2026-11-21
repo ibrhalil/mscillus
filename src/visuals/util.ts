@@ -51,6 +51,19 @@ export function fadeTrail(
   fadeFrame(ctx, s.palette.bg, clamp01(alpha / (s.opt.trail || 1)), w, h);
 }
 
+// Genel çözünürlük ölçeği (Performans → Çözünürlük, otomatik ölçekleme): RenderLoop ayarlar; kendi kalite ayarı olan
+// WebGL modları (Solucan Deliği, Kaleydoskop) sınırlarını bununla birleştirir.
+let renderScale = 1;
+
+export function setRenderScale(scale: number): void {
+  renderScale = scale;
+}
+
+/** Çizim tamponu piksel oranı: cihaz DPR'si (en çok 2) × genel çözünürlük ölçeği. */
+export function pixelRatio(): number {
+  return Math.min(2, window.devicePixelRatio || 1) * renderScale;
+}
+
 /** Parlama açıksa gölge bulanıklığı + rengini ayarlar, kapalıysa gölgeyi sıfırlar. */
 // Parlama kalitesi (0 düşük, 1 orta, 2 yüksek): RenderLoop her karede ayarlar; yardımcılar buna göre ölçeklenir.
 const GLOW_SCALE = [0.45, 0.75, 1] as const;
